@@ -58,7 +58,6 @@ export function AppSidebar() {
             </SidebarContent>
             <SidebarFooter className="p-4 border-t">
                 <form action={async () => {
-                    'use server'
                     await logout()
                 }}>
                     <Button variant="outline" className="w-full justify-start">
