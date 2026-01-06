@@ -29,24 +29,48 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover'
 
-import { createProforma, getNextProformaNumber } from '@/lib/actions/proformas'
+import { createProforma, updateProforma, getNextProformaNumber } from '@/lib/actions/proformas'
 import { proformaSchema, type ProformaFormData } from '@/lib/validations/proforma'
 import { ClientSelector } from '@/components/clients/client-selector'
 
-export function ProformaForm() {
+interface ProformaFormProps {
+    initialData?: any // Loose type for now, but should match DB shape
+    id?: string
+    readOnly?: boolean
+}
+
+export function ProformaForm({ initialData, id, readOnly = false }: ProformaFormProps) {
     const router = useRouter()
     const [loading, setLoading] = useState(false)
     const [nextParams, setNextParams] = useState<number | null>(null)
 
-    const form = useForm({
+    // Transform initialData to form shape if present
+    const defaultValues: Partial<ProformaFormData> = initialData ? {
+        client_id: initialData.client_id,
+        date: initialData.date,
+        iva_percentage: initialData.iva_percentage,
+        delivery_days: initialData.delivery_days || undefined,
+        payment_methods: initialData.payment_methods || undefined,
+        observations: initialData.observations || undefined,
+        items: initialData.items?.map((item: any) => ({
+            quantity: item.quantity,
+            unit: item.unit,
+            description: item.description,
+            unit_cost: item.unit_cost,
+            percentage_gain: item.percentage_gain
+        }))
+    } : {
+        client_id: '',
+        date: new Date().toISOString(),
+        iva_percentage: 15,
+        items: [
+            { quantity: 1, unit: 'u', description: '', unit_cost: 0, percentage_gain: 0 }
+        ],
+    }
+
+    const form = useForm<any>({
         resolver: zodResolver(proformaSchema),
-        defaultValues: {
-            date: new Date().toISOString(),
-            iva_percentage: 15,
-            items: [
-                { quantity: 1, unit: 'u', description: '', unit_cost: 0, percentage_gain: 0 }
-            ],
-        },
+        defaultValues: defaultValues,
     })
 
     const { fields, append, remove } = useFieldArray({
@@ -62,7 +86,7 @@ export function ProformaForm() {
     const calculateTotals = () => {
         let subtotal = 0
 
-        items.forEach((item) => {
+        items?.forEach((item: any) => {
             const cost = Number(item.unit_cost) || 0
             const gain = Number(item.percentage_gain) || 0
             const quantity = Number(item.quantity) || 0
@@ -83,21 +107,33 @@ export function ProformaForm() {
 
     const { subtotal, iva_amount, total } = calculateTotals()
 
-    // Fetch next proforma number
+    // Fetch next proforma number only if creating
     useEffect(() => {
-        getNextProformaNumber().then(num => setNextParams(num))
-    }, [])
+        if (!id) {
+            getNextProformaNumber().then(num => setNextParams(num))
+        } else {
+            setNextParams(initialData?.proforma_number)
+        }
+    }, [id, initialData])
 
     async function onSubmit(data: ProformaFormData) {
+        if (readOnly) return;
+
         setLoading(true)
-        const result = await createProforma(data)
+        let result;
+
+        if (id) {
+            result = await updateProforma(id, data)
+        } else {
+            result = await createProforma(data)
+        }
 
         if (result?.error) {
             toast.error(result.error)
             setLoading(false)
         } else {
-            toast.success('Proforma created successfully')
-            // Redirect handles automatically in action
+            toast.success(id ? 'Proforma updated' : 'Proforma created')
+            // Redirect handled in action
         }
     }
 
@@ -108,10 +144,11 @@ export function ProformaForm() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label>Client</Label>
+                            {/* If readOnly/Edit, might want to lock client? For now allow edit. */}
                             <ClientSelector
                                 value={form.watch('client_id')}
                                 onChange={(val) => form.setValue('client_id', val)}
-                                error={form.formState.errors.client_id?.message}
+                                error={form.formState.errors.client_id?.message as string}
                             />
                         </div>
                         <div className="space-y-2 flex flex-col">
@@ -124,6 +161,7 @@ export function ProformaForm() {
                                             "w-full justify-start text-left font-normal",
                                             !form.watch('date') && "text-muted-foreground"
                                         )}
+                                        disabled={readOnly}
                                     >
                                         <CalendarIcon className="mr-2 h-4 w-4" />
                                         {form.watch('date') ? format(new Date(form.watch('date')), "PPP") : <span>Pick a date</span>}
@@ -139,7 +177,7 @@ export function ProformaForm() {
                                 </PopoverContent>
                             </Popover>
                             {form.formState.errors.date && (
-                                <p className="text-sm text-red-500">{form.formState.errors.date.message}</p>
+                                <p className="text-sm text-red-500">{form.formState.errors.date.message as string}</p>
                             )}
                         </div>
                     </div>
@@ -150,6 +188,7 @@ export function ProformaForm() {
                                 type="number"
                                 {...form.register('delivery_days')}
                                 placeholder="e.g. 5"
+                                disabled={readOnly}
                             />
                         </div>
                         <div className="space-y-2">
@@ -157,6 +196,7 @@ export function ProformaForm() {
                             <Input
                                 {...form.register('payment_methods')}
                                 placeholder="e.g. Cash, Transfer"
+                                disabled={readOnly}
                             />
                         </div>
                         <div className="space-y-2">
@@ -174,9 +214,11 @@ export function ProformaForm() {
             <div className="space-y-4">
                 <div className="flex justify-between items-center">
                     <h3 className="text-lg font-medium">Items</h3>
-                    <Button type="button" variant="secondary" size="sm" onClick={() => append({ quantity: 1, unit: 'u', description: '', unit_cost: 0, percentage_gain: 0 })}>
-                        <Plus className="mr-2 h-4 w-4" /> Add Item
-                    </Button>
+                    {!readOnly && (
+                        <Button type="button" variant="secondary" size="sm" onClick={() => append({ quantity: 1, unit: 'u', description: '', unit_cost: 0, percentage_gain: 0 })}>
+                            <Plus className="mr-2 h-4 w-4" /> Add Item
+                        </Button>
+                    )}
                 </div>
 
                 <div className="border rounded-md">
@@ -211,19 +253,22 @@ export function ProformaForm() {
                                                 type="number"
                                                 step="0.01"
                                                 {...form.register(`items.${index}.quantity`)}
+                                                disabled={readOnly}
                                             />
                                         </TableCell>
                                         <TableCell>
                                             <Input
                                                 {...form.register(`items.${index}.unit`)}
+                                                disabled={readOnly}
                                             />
                                         </TableCell>
                                         <TableCell>
                                             <Input
                                                 {...form.register(`items.${index}.description`)}
+                                                disabled={readOnly}
                                             />
-                                            {form.formState.errors.items?.[index]?.description && (
-                                                <p className="text-xs text-red-500 mt-1">{form.formState.errors.items[index]?.description?.message}</p>
+                                            {(form.formState.errors.items as any)?.[index]?.description && (
+                                                <p className="text-xs text-red-500 mt-1">{(form.formState.errors.items as any)[index]?.description?.message as string}</p>
                                             )}
                                         </TableCell>
                                         <TableCell>
@@ -231,6 +276,7 @@ export function ProformaForm() {
                                                 type="number"
                                                 step="0.01"
                                                 {...form.register(`items.${index}.unit_cost`)}
+                                                disabled={readOnly}
                                             />
                                         </TableCell>
                                         <TableCell>
@@ -238,6 +284,7 @@ export function ProformaForm() {
                                                 type="number"
                                                 step="1"
                                                 {...form.register(`items.${index}.percentage_gain`)}
+                                                disabled={readOnly}
                                             />
                                         </TableCell>
                                         <TableCell className="text-right font-mono text-sm">
@@ -247,15 +294,17 @@ export function ProformaForm() {
                                             ${rowTotal.toFixed(2)}
                                         </TableCell>
                                         <TableCell>
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => remove(index)}
-                                                disabled={fields.length === 1}
-                                            >
-                                                <Trash2 className="h-4 w-4 text-destructive" />
-                                            </Button>
+                                            {!readOnly && (
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => remove(index)}
+                                                    disabled={fields.length === 1}
+                                                >
+                                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                                </Button>
+                                            )}
                                         </TableCell>
                                     </TableRow>
                                 )
@@ -279,6 +328,7 @@ export function ProformaForm() {
                                     type="number"
                                     className="w-16 h-8"
                                     {...form.register('iva_percentage')}
+                                    disabled={readOnly}
                                 />
                             </span>
                             <span className="font-mono">${iva_amount.toFixed(2)}</span>
@@ -289,9 +339,11 @@ export function ProformaForm() {
                             <span>${total.toFixed(2)}</span>
                         </div>
 
-                        <Button type="submit" className="w-full mt-4" disabled={loading}>
-                            {loading ? 'Saving...' : 'Create Proforma'}
-                        </Button>
+                        {!readOnly && (
+                            <Button type="submit" className="w-full mt-4" disabled={loading}>
+                                {loading ? 'Saving...' : (id ? 'Update Proforma' : 'Create Proforma')}
+                            </Button>
+                        )}
                     </CardContent>
                 </Card>
             </div>
