@@ -80,7 +80,11 @@ export async function getProforma(id: string) {
 
     const { data, error } = await supabase
         .from('proformas')
-        .select('*, items(*)')
+        .select(`
+            *,
+            items (*),
+            clients (*)
+        `)
         .eq('id', id)
         .single()
 
@@ -94,6 +98,12 @@ export async function getProforma(id: string) {
     // items have created_at usually.
     if (data.items) {
         data.items.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+    }
+
+    // Ensure clients is present (it might be null if FK constraint isn't strict, though it should be)
+    if (!data.clients) {
+        // Fallback or error?
+        // For now, let's just let it be, but the generator needs to handle it.
     }
 
     return { data, error: null }

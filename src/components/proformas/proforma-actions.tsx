@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { MoreHorizontal, FileEdit, Copy, Lock, Eye } from 'lucide-react'
+import { MoreHorizontal, FileEdit, Copy, Lock, Eye, FileDown } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -23,7 +23,8 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog'
-import { cloneProforma, finalizeProforma } from '@/lib/actions/proformas'
+import { cloneProforma, finalizeProforma, getProforma } from '@/lib/actions/proformas'
+import { generateProformaPDF } from '@/lib/pdf-generator'
 
 interface ProformaActionsProps {
     id: string
@@ -58,6 +59,25 @@ export function ProformaActions({ id, status }: ProformaActionsProps) {
         }
     }
 
+    async function handleDownloadPDF() {
+        setLoading(true)
+        try {
+            const { data, error } = await getProforma(id)
+            if (error || !data) {
+                toast.error('Could not fetch proforma data')
+                setLoading(false)
+                return
+            }
+            await generateProformaPDF(data)
+            toast.success('PDF Generated!')
+        } catch (err) {
+            console.error(err)
+            toast.error('Failed to generate PDF')
+        } finally {
+            setLoading(false)
+        }
+    }
+
     return (
         <Dialog open={finalizeOpen} onOpenChange={setFinalizeOpen}>
             <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -87,22 +107,31 @@ export function ProformaActions({ id, status }: ProformaActionsProps) {
                         </DropdownMenuItem>
                     )}
 
+                    {/* PDF DOWNLOAD: Client Side */}
+                    <DropdownMenuItem onClick={handleDownloadPDF} disabled={loading} className="cursor-pointer">
+                        <FileDown className="mr-2 h-4 w-4" />
+                        Download PDF
+                    </DropdownMenuItem>
+
+                    <DropdownMenuSeparator />
+
                     {/* CLONE: Always allowed */}
                     <DropdownMenuItem onClick={handleClone} disabled={loading}>
                         <Copy className="mr-2 h-4 w-4" />
                         Clone
                     </DropdownMenuItem>
 
-                    <DropdownMenuSeparator />
-
                     {/* FINALIZE: Only allowed if draft */}
                     {status === 'draft' && (
-                        <DialogTrigger asChild>
-                            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                <Lock className="mr-2 h-4 w-4" />
-                                Finalize
-                            </DropdownMenuItem>
-                        </DialogTrigger>
+                        <>
+                            <DropdownMenuSeparator />
+                            <DialogTrigger asChild>
+                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                    <Lock className="mr-2 h-4 w-4" />
+                                    Finalize
+                                </DropdownMenuItem>
+                            </DialogTrigger>
+                        </>
                     )}
                 </DropdownMenuContent>
             </DropdownMenu>
