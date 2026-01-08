@@ -90,37 +90,34 @@ export const generateProformaPDF = async (proforma: any) => {
             img.onload = resolve
             img.onerror = reject
         })
-        doc.addImage(img, 'JPEG', 15, 10, 50, 25) // x, y, w, h
+        doc.addImage(img, 'JPEG', 20, 8, 18, 18) // x, y, w, h
     } catch (e) {
         console.warn('Logo load failed', e)
         doc.setFontSize(10)
-        doc.text("ARMONINT", 15, 20)
+        doc.text("ARMONINT", 20, 12)
     }
 
     // Title
-    doc.setFontSize(14)
+    doc.setFontSize(12)
     doc.setFont("helvetica", "bold")
-    doc.text("PROFORMA", 90, 20)
-    doc.text(`00- ${String(proforma.proforma_number).padStart(4, '0')}`, 90, 28)
+    doc.text(`PROFORMA 00- ${String(proforma.proforma_number).padStart(4, '0')}`, 85, 20)
 
     // Professional
     doc.setFontSize(10)
-    doc.text("Dis. Verónica Cedillo", 150, 20)
+    doc.text("Dis. Verónica Cedillo", 150, 15)
 
     // ID with Highlight
-    doc.setFillColor(230, 243, 255) // Light blue
-    doc.rect(150, 24, 30, 5, 'F')
     doc.setTextColor(0, 0, 0)
-    doc.text("0105706444", 152, 28)
+    doc.text("0105706444", 152, 20)
 
     // Header Border
     doc.setDrawColor(0)
-    doc.rect(14, 8, 182, 30) // Main box
-    doc.line(75, 8, 75, 38) // Vertical 1
-    doc.line(140, 8, 140, 38) // Vertical 2
+    doc.rect(14, 8, 182, 20) // Main box
+    //doc.line(50, 8, 50, 38) // Vertical 1
+    doc.line(140, 8, 140, 28) // Vertical 2
 
     // --- CLIENT INFO GRID ---
-    let y = 45
+    let y = 28
     const rowH = 7
     const col1 = 14
     const col2 = 35
@@ -193,6 +190,7 @@ export const generateProformaPDF = async (proforma: any) => {
         },
         headStyles: {
             fillColor: [180, 198, 231], // #b4c6e7
+            fontSize: 7,
             textColor: 0,
             fontStyle: 'bold',
             halign: 'center',
@@ -200,11 +198,11 @@ export const generateProformaPDF = async (proforma: any) => {
             lineWidth: 0.1
         },
         columnStyles: {
-            0: { cellWidth: 90 }, // Desc
-            1: { cellWidth: 20, halign: 'center' }, // Unit
-            2: { cellWidth: 20, halign: 'center' }, // Qty
-            3: { cellWidth: 25, halign: 'right' }, // Price
-            4: { cellWidth: 27, halign: 'right' }  // Total
+            0: { cellWidth: 114 }, // Desc
+            1: { cellWidth: 14, halign: 'center' }, // Unit
+            2: { cellWidth: 17, halign: 'center' }, // Qty
+            3: { cellWidth: 21, halign: 'right' }, // Price
+            4: { cellWidth: 16, halign: 'right' }  // Total
         },
         margin: { left: 14, right: 14 }
     })
