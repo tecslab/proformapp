@@ -148,17 +148,24 @@ export const generateProformaPDF = async (proforma: any) => {
     // Row 2
     y += rowH
     doc.setFont("helvetica", "bold"); doc.text("Cliente", col1 + 1, y + 5)
+    if ((client.first_name + client.last_name).length > 30) {
+        doc.setFontSize(7)
+    }
     doc.setFont("helvetica", "normal"); doc.text(`${client.first_name} ${client.last_name}`, col2 + 2, y + 5)
+    doc.setFontSize(9)
     doc.setFont("helvetica", "bold"); doc.text("Ruc", col3 + 1, y + 5)
     doc.setFont("helvetica", "normal"); doc.text(client.cedula_ruc || '', col4 + 2, y + 5)
 
     // Row 3
     y += rowH
     doc.setFont("helvetica", "bold"); doc.text("Dirección", col1 + 1, y + 5)
+    if ((client.city + client.address).length > 30) {
+        doc.setFontSize(7)
+    }
     doc.setFont("helvetica", "normal");
     const address = client.city ? `${client.city}` : (client.address || '-')
     doc.text(address, col2 + 2, y + 5)
-
+    doc.setFontSize(9)
     doc.setFont("helvetica", "bold"); doc.text("correo", col3 + 1, y + 5)
     doc.setFont("helvetica", "normal"); doc.text(client.email || '-', col4 + 2, y + 5)
 
@@ -260,11 +267,14 @@ export const generateProformaPDF = async (proforma: any) => {
     const amountInWords = numberToWordsEs(totalRounded).toUpperCase()
 
     doc.setFillColor(217, 217, 217) // #d9d9d9
-    doc.rect(14, footerY, 100, 8, 'F')
     doc.setFontSize(8)
-    doc.text(`SON: ${amountInWords}`, 16, footerY + 5)
+    const splitAmount = doc.splitTextToSize(`SON: ${amountInWords}`, 95)
+    const boxHeight = splitAmount.length > 1 ? 8 + (splitAmount.length - 1) * 5 : 8
 
-    footerY += 15
+    doc.rect(14, footerY, 100, boxHeight, 'F')
+    doc.text(splitAmount, 16, footerY + 5)
+
+    footerY += boxHeight + 7
     doc.setFont("helvetica", "bold")
     doc.text("PLAZO DE ENTREGA APROXIMADO:", 14, footerY)
     doc.setFont("helvetica", "normal")
