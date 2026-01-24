@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
 import {
     Table,
@@ -209,6 +210,15 @@ export function ProformaForm({ initialData, id, readOnly = false }: ProformaForm
                 </div>
             </div>
 
+            <div className="space-y-2">
+                <Label>Observations</Label>
+                <Textarea
+                    {...form.register('observations')}
+                    placeholder="Additional notes or conditions..."
+                    disabled={readOnly}
+                />
+            </div>
+
             <Separator />
 
             <div className="space-y-4">
@@ -347,6 +357,6 @@ export function ProformaForm({ initialData, id, readOnly = false }: ProformaForm
                     </CardContent>
                 </Card>
             </div>
-        </form>
+        </form >
     )
 }

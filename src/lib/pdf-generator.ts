@@ -286,11 +286,18 @@ export const generateProformaPDF = async (proforma: any) => {
     doc.setFont("helvetica", "normal")
     doc.text("PRECIOS INCLUYEN IVA", 20, footerY + 5)
     doc.text("PLAZO DE ENTREGA FIJO SI NO SE REALIZAN CAMBIOS", 20, footerY + 9)
+
+    let extraObsHeight = 0
     if (proforma.observations) {
-        doc.text(proforma.observations, 20, footerY + 13)
+        const splitObs = doc.splitTextToSize(proforma.observations, 160)
+        doc.text(splitObs, 20, footerY + 13)
+        // Approximate height increase: (lines - 1) * line_height_approx
+        if (splitObs.length > 1) {
+            extraObsHeight = (splitObs.length - 1) * 3.5
+        }
     }
 
-    footerY += 20
+    footerY += 20 + extraObsHeight
     doc.setFont("helvetica", "bold")
     doc.text("FORMAS DE PAGO", 14, footerY)
     doc.setFont("helvetica", "normal")
