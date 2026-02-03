@@ -3,72 +3,7 @@ import autoTable from 'jspdf-autotable'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
-// Helper for number to words (Simplified Spanish)
-function numberToWordsEs(number: number): string {
-    const unidades = ['', 'UN', 'DOS', 'TRES', 'CUATRO', 'CINCO', 'SEIS', 'SIETE', 'OCHO', 'NUEVE']
-    const decenas = ['', 'DIEZ', 'VEINTE', 'TREINTA', 'CUARENTA', 'CINCUENTA', 'SESENTA', 'SETENTA', 'OCHENTA', 'NOVENTA']
-    const diez_veinte = ['DIEZ', 'ONCE', 'DOCE', 'TRECE', 'CATORCE', 'QUINCE', 'DIECISEIS', 'DIECISIETE', 'DIECIOCHO', 'DIECINUEVE']
-    const centenas = ['', 'CIENTO', 'DOSCIENTOS', 'TRESCIENTOS', 'CUATROCIENTOS', 'QUINIENTOS', 'SEISCIENTOS', 'SETECIENTOS', 'OCHOCIENTOS', 'NOVECIENTOS']
-
-    function convertGroup(n: number): string {
-        let output = ''
-        if (n === 100) return 'CIEN'
-
-        if (n >= 100) {
-            output += centenas[Math.floor(n / 100)] + ' '
-            n %= 100
-        }
-
-        if (n >= 10 && n <= 19) {
-            output += diez_veinte[n - 10]
-            return output
-        } else if (n >= 20) {
-            output += decenas[Math.floor(n / 10)]
-            n %= 10
-            if (n > 0) output += ' Y '
-        }
-
-        if (n > 0) {
-            output += unidades[n]
-        }
-        return output
-    }
-
-    const integerPart = Math.floor(number)
-    const decimalPart = Math.round((number - integerPart) * 100)
-
-    let words = ''
-
-    if (integerPart === 0) words = 'CERO'
-    else if (integerPart >= 1000000) {
-        const millions = Math.floor(integerPart / 1000000)
-        const remainder = integerPart % 1000000
-        if (millions === 1) words += 'UN MILLÓN '
-        else words += convertGroup(millions) + ' MILLONES '
-
-        if (remainder > 0) {
-            if (remainder >= 1000) {
-                const thousands = Math.floor(remainder / 1000)
-                const rest = remainder % 1000
-                if (thousands === 1) words += 'MIL '
-                else words += convertGroup(thousands) + ' MIL '
-                if (rest > 0) words += convertGroup(rest)
-            } else {
-                words += convertGroup(remainder)
-            }
-        }
-    } else if (integerPart >= 1000) {
-        const thousands = Math.floor(integerPart / 1000)
-        const rest = integerPart % 1000
-        if (thousands === 1) words += 'MIL '
-        else words += convertGroup(thousands) + ' MIL '
-        if (rest > 0) words += convertGroup(rest)
-    } else {
-        words += convertGroup(integerPart)
-    }
-
-    return `${words.trim()} DÓLARES AMERICANOS CON ${decimalPart}/100 CENTAVOS`
-}
+import { numberToWordsEs, calculateItemDetails } from './calculations'
 
 export const generateProformaPDF = async (proforma: any) => {
     const doc = new jsPDF()
@@ -171,9 +106,7 @@ export const generateProformaPDF = async (proforma: any) => {
 
     // --- ITEMS TABLE ---
     const tableData = items.map((item: any) => {
-        const earned = item.unit_cost * (item.percentage_gain / 100)
-        const unitPrice = item.unit_cost + earned
-        const lineTotal = unitPrice * item.quantity
+        const { unitPrice, lineTotal } = calculateItemDetails(item.unit_cost, item.percentage_gain, item.quantity)
         return [
             item.description,
             item.unit,
