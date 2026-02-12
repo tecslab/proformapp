@@ -1,0 +1,62 @@
+
+> proformapp@0.1.0 lint
+> eslint
+
+
+/home/pabsv/Documents/proformapp/jest.config.js
+  1:18  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+/home/pabsv/Documents/proformapp/src/app/(dashboard)/dashboard/proformas/[id]/edit/page.tsx
+  1:20  warning  'redirect' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/pabsv/Documents/proformapp/src/components/auth/login-form.tsx
+  30:11  warning  'router' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/pabsv/Documents/proformapp/src/components/clients/client-list.tsx
+   3:10  warning  'useState' is defined but never used     @typescript-eslint/no-unused-vars
+  43:51  warning  'currentPage' is defined but never used  @typescript-eslint/no-unused-vars
+  43:64  warning  'totalPages' is defined but never used   @typescript-eslint/no-unused-vars
+
+/home/pabsv/Documents/proformapp/src/components/clients/client-selector.tsx
+  31:12  warning  'loading' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/home/pabsv/Documents/proformapp/src/components/common/pagination-control.tsx
+   3:40  warning  'useRouter' is defined but never used           @typescript-eslint/no-unused-vars
+   5:5   warning  'Pagination' is defined but never used          @typescript-eslint/no-unused-vars
+   6:5   warning  'PaginationContent' is defined but never used   @typescript-eslint/no-unused-vars
+   7:5   warning  'PaginationEllipsis' is defined but never used  @typescript-eslint/no-unused-vars
+   8:5   warning  'PaginationItem' is defined but never used      @typescript-eslint/no-unused-vars
+   9:5   warning  'PaginationLink' is defined but never used      @typescript-eslint/no-unused-vars
+  10:5   warning  'PaginationNext' is defined but never used      @typescript-eslint/no-unused-vars
+  11:5   warning  'PaginationPrevious' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/pabsv/Documents/proformapp/src/components/layout/app-sidebar.tsx
+  3:10  warning  'Calendar' is defined but never used  @typescript-eslint/no-unused-vars
+  3:26  warning  'Inbox' is defined but never used     @typescript-eslint/no-unused-vars
+  3:33  warning  'Search' is defined but never used    @typescript-eslint/no-unused-vars
+  3:41  warning  'Settings' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/pabsv/Documents/proformapp/src/components/proformas/proforma-form.test.tsx
+   3:26  warning  'updateProforma' is defined but never used  @typescript-eslint/no-unused-vars
+  27:50  error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+
+/home/pabsv/Documents/proformapp/src/components/proformas/proforma-form.tsx
+   38:19  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        @typescript-eslint/no-explicit-any
+   44:11  warning  'router' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     @typescript-eslint/no-unused-vars
+   73:50  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        @typescript-eslint/no-explicit-any
+  144:55  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        @typescript-eslint/no-explicit-any
+  253:53  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+/home/pabsv/Documents/proformapp/src/components/proformas/proforma-form.tsx:253:53
+  251 |                             {fields.map((field, index) => {
+  252 |                                 // Calculate row values for display
+> 253 |                                 const cost = Number(form.watch(`items.${index}.unit_cost`)) || 0
+      |                                                     ^^^^ React Hook Form's `useForm()` API returns a `watch()` function which cannot be memoized safely.
+  254 |                                 const gain = Number(form.watch(`items.${index}.percentage_gain`)) || 0
+  255 |                                 const qty = Number(form.watch(`items.${index}.quantity`)) || 0
+  256 |  react-hooks/incompatible-library
+
+✖ 26 problems (5 errors, 21 warnings)
+

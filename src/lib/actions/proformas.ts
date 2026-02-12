@@ -97,7 +97,7 @@ export async function getProforma(id: string) {
     // For now we assume they come back reasonably or sort by insertion if we had an auto-inc or created_at.
     // items have created_at usually.
     if (data.items) {
-        data.items.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+        data.items.sort((a: { created_at: string }, b: { created_at: string }) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
     }
 
     // Ensure clients is present (it might be null if FK constraint isn't strict, though it should be)
@@ -292,7 +292,7 @@ export async function cloneProforma(id: string) {
 
     // 4. Copy Items
     if (original.items && original.items.length > 0) {
-        const itemsToCopy = original.items.map((item: any) => ({
+        const itemsToCopy = original.items.map((item: { description: string; quantity: number | string; unit: string; unit_cost: number | string; percentage_gain: number | string; line_total: number | string }) => ({
             proforma_id: newProforma.id,
             description: item.description,
             quantity: item.quantity,
@@ -310,9 +310,9 @@ export async function cloneProforma(id: string) {
 }
 
 // Helper for consistency
-function calculateProformaTotals(items: any[], iva_percentage: number) {
+function calculateProformaTotals(items: { unit_cost: number | string; percentage_gain: number | string; quantity: number | string; description: string; unit: string; line_total?: number | string }[], iva_percentage: number) {
     let subtotal = 0
-    const calculatedItems = items.map((item: any) => {
+    const calculatedItems = items.map((item) => {
         const earned_value = Number(item.unit_cost) * (Number(item.percentage_gain) / 100)
         const unit_price = Number(item.unit_cost) + earned_value
         const line_total = unit_price * Number(item.quantity)

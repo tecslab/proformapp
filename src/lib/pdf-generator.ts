@@ -5,7 +5,34 @@ import { es } from 'date-fns/locale'
 
 import { numberToWordsEs, calculateItemDetails } from './calculations'
 
-export const generateProformaPDF = async (proforma: any) => {
+export const generateProformaPDF = async (proforma: {
+    clients: {
+        first_name?: string;
+        last_name?: string;
+        cedula_ruc?: string;
+        phone?: string;
+        email?: string;
+        city?: string;
+        address?: string;
+    } | null;
+    items: {
+        unit_cost: number | string;
+        percentage_gain: number | string;
+        quantity: number | string;
+        description: string;
+        unit: string;
+        line_total?: number | string;
+    }[];
+    proforma_number: number | string;
+    date: string | number | Date;
+    subtotal: number;
+    iva_percentage: number;
+    iva_amount: number;
+    total: number;
+    delivery_days: string;
+    payment_methods: string;
+    observations: string;
+}) => {
     const doc = new jsPDF()
     const client = proforma.clients || {}
     const items = proforma.items || []
@@ -83,10 +110,10 @@ export const generateProformaPDF = async (proforma: any) => {
     // Row 2
     y += rowH
     doc.setFont("helvetica", "bold"); doc.text("Cliente", col1 + 1, y + 5)
-    if ((client.first_name + client.last_name).length > 30) {
+    if (((client.first_name || '') + (client.last_name || '')).length > 30) {
         doc.setFontSize(7)
     }
-    doc.setFont("helvetica", "normal"); doc.text(`${client.first_name} ${client.last_name}`, col2 + 2, y + 5)
+    doc.setFont("helvetica", "normal"); doc.text(`${client.first_name || ''} ${client.last_name || ''}`, col2 + 2, y + 5)
     doc.setFontSize(9)
     doc.setFont("helvetica", "bold"); doc.text("Ruc", col3 + 1, y + 5)
     doc.setFont("helvetica", "normal"); doc.text(client.cedula_ruc || '', col4 + 2, y + 5)
@@ -94,7 +121,7 @@ export const generateProformaPDF = async (proforma: any) => {
     // Row 3
     y += rowH
     doc.setFont("helvetica", "bold"); doc.text("Dirección", col1 + 1, y + 5)
-    if ((client.city + client.address).length > 30) {
+    if (((client.city || '') + (client.address || '')).length > 30) {
         doc.setFontSize(7)
     }
     doc.setFont("helvetica", "normal");
@@ -105,8 +132,8 @@ export const generateProformaPDF = async (proforma: any) => {
     doc.setFont("helvetica", "normal"); doc.text(client.email || '-', col4 + 2, y + 5)
 
     // --- ITEMS TABLE ---
-    const tableData = items.map((item: any) => {
-        const { unitPrice, lineTotal } = calculateItemDetails(item.unit_cost, item.percentage_gain, item.quantity)
+    const tableData = items.map((item) => {
+        const { unitPrice, lineTotal } = calculateItemDetails(Number(item.unit_cost), Number(item.percentage_gain), Number(item.quantity))
         return [
             item.description,
             item.unit,
@@ -148,7 +175,7 @@ export const generateProformaPDF = async (proforma: any) => {
     })
 
     // --- TOTALS & FOOTER ---
-    let finalY = (doc as any).lastAutoTable.finalY + 5
+    let finalY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 5
 
     // Totals Table (Right side)
     const totalsX = 120
@@ -193,7 +220,7 @@ export const generateProformaPDF = async (proforma: any) => {
 
     // Left Side Footer
     // Reset Y to top of totals section
-    let footerY = (doc as any).lastAutoTable.finalY + 10
+    let footerY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10
 
     // Amount convert
     const totalRounded = Math.round(proforma.total * 100) / 100

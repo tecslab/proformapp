@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
-import { startOfMonth, endOfMonth, toDate } from "date-fns"
+import { startOfMonth, endOfMonth } from "date-fns"
 
 export async function getDashboardStats() {
     const supabase = await createClient()

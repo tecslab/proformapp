@@ -31,17 +31,18 @@ import {
 } from '@/components/ui/popover'
 
 import { createProforma, updateProforma, getNextProformaNumber } from '@/lib/actions/proformas'
-import { proformaSchema, type ProformaFormData } from '@/lib/validations/proforma'
+import { proformaSchema, type ProformaFormData, type ItemFormData } from '@/lib/validations/proforma'
 import { ClientSelector } from '@/components/clients/client-selector'
 
 interface ProformaFormProps {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     initialData?: any // Loose type for now, but should match DB shape
     id?: string
     readOnly?: boolean
 }
 
 export function ProformaForm({ initialData, id, readOnly = false }: ProformaFormProps) {
-    const router = useRouter()
+    // const router = useRouter()
     const [loading, setLoading] = useState(false)
     const [nextParams, setNextParams] = useState<number | null>(null)
 
@@ -53,7 +54,7 @@ export function ProformaForm({ initialData, id, readOnly = false }: ProformaForm
         delivery_days: initialData.delivery_days || undefined,
         payment_methods: initialData.payment_methods || undefined,
         observations: initialData.observations || undefined,
-        items: initialData.items?.map((item: any) => ({
+        items: initialData.items?.map((item: ItemFormData) => ({
             quantity: item.quantity,
             unit: item.unit,
             description: item.description,
@@ -69,8 +70,9 @@ export function ProformaForm({ initialData, id, readOnly = false }: ProformaForm
         ],
     }
 
-    const form = useForm<any>({
-        resolver: zodResolver(proformaSchema),
+    const form = useForm<ProformaFormData>({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        resolver: zodResolver(proformaSchema) as any,
         defaultValues: defaultValues,
     })
 
@@ -87,7 +89,7 @@ export function ProformaForm({ initialData, id, readOnly = false }: ProformaForm
     const calculateTotals = () => {
         let subtotal = 0
 
-        items?.forEach((item: any) => {
+        items?.forEach((item: ItemFormData) => {
             const cost = Number(item.unit_cost) || 0
             const gain = Number(item.percentage_gain) || 0
             const quantity = Number(item.quantity) || 0
@@ -141,7 +143,8 @@ export function ProformaForm({ initialData, id, readOnly = false }: ProformaForm
 
 
     return (
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        <form onSubmit={form.handleSubmit(onSubmit as any)} className="space-y-8">
             <div className="flex justify-between items-start gap-4">
                 <div className="space-y-4 flex-1">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -279,7 +282,9 @@ export function ProformaForm({ initialData, id, readOnly = false }: ProformaForm
                                                 {...form.register(`items.${index}.description`)}
                                                 disabled={readOnly}
                                             />
+                                            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                             {(form.formState.errors.items as any)?.[index]?.description && (
+                                                /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
                                                 <p className="text-xs text-red-500 mt-1">{(form.formState.errors.items as any)[index]?.description?.message as string}</p>
                                             )}
                                         </TableCell>

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { ProformaForm } from './proforma-form'
 import { createProforma, updateProforma, getNextProformaNumber } from '@/lib/actions/proformas'
