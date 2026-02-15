@@ -73,6 +73,13 @@ test.describe('Proformas', () => {
 
         // Verify success
         // Toast might be skipped due to server-side redirect, so focus on navigation and data presence
-        await expect(page).toHaveURL(/.*\/dashboard\/proformas/);
+        // Use stricter regex with end anchor ($) to ensure we are on the list page, not /new
+        await expect(page).toHaveURL(/.*\/dashboard\/proformas$/);
+
+        // Verify proforma appears in the list
+        // Search for the client name used in creation to find the specific row
+        await page.getByPlaceholder('Search by # or Client Name...').fill(clientName);
+        // Wait for table to update (assuming debounced search or network request)
+        await expect(page.getByRole('cell', { name: clientName })).toBeVisible();
     });
 });
