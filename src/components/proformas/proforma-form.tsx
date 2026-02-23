@@ -58,6 +58,7 @@ export function ProformaForm({ initialData, id, readOnly = false }: ProformaForm
             quantity: item.quantity,
             unit: item.unit,
             description: item.description,
+            comment: item.comment,
             unit_cost: item.unit_cost,
             percentage_gain: item.percentage_gain
         }))
@@ -66,7 +67,7 @@ export function ProformaForm({ initialData, id, readOnly = false }: ProformaForm
         date: new Date().toISOString(),
         iva_percentage: 15,
         items: [
-            { quantity: 1, unit: 'u', description: '', unit_cost: 0, percentage_gain: 0 }
+            { quantity: 1, unit: 'u', description: '', comment: '', unit_cost: 0, percentage_gain: 0 }
         ],
     }
 
@@ -230,7 +231,7 @@ export function ProformaForm({ initialData, id, readOnly = false }: ProformaForm
                 <div className="flex justify-between items-center">
                     <h3 className="text-lg font-medium">Items</h3>
                     {!readOnly && (
-                        <Button type="button" variant="secondary" size="sm" onClick={() => append({ quantity: 1, unit: 'u', description: '', unit_cost: 0, percentage_gain: 0 })}>
+                        <Button type="button" variant="secondary" size="sm" onClick={() => append({ quantity: 1, unit: 'u', description: '', comment: '', unit_cost: 0, percentage_gain: 0 })}>
                             <Plus className="mr-2 h-4 w-4" /> Add Item
                         </Button>
                     )}
@@ -277,15 +278,30 @@ export function ProformaForm({ initialData, id, readOnly = false }: ProformaForm
                                                 disabled={readOnly}
                                             />
                                         </TableCell>
-                                        <TableCell>
-                                            <Input
-                                                {...form.register(`items.${index}.description`)}
-                                                disabled={readOnly}
-                                            />
+                                        <TableCell className="min-w-[250px] align-top">
+                                            <div className="flex flex-col gap-2">
+                                                <Input
+                                                    {...form.register(`items.${index}.description`)}
+                                                    disabled={readOnly}
+                                                    placeholder="Description"
+                                                />
+                                                <Input
+                                                    className="text-xs h-7"
+                                                    placeholder="Optional comment (max 150 chars)"
+                                                    maxLength={150}
+                                                    {...form.register(`items.${index}.comment`)}
+                                                    disabled={readOnly}
+                                                />
+                                            </div>
                                             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                             {(form.formState.errors.items as any)?.[index]?.description && (
                                                 /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
                                                 <p className="text-xs text-red-500 mt-1">{(form.formState.errors.items as any)[index]?.description?.message as string}</p>
+                                            )}
+                                            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                            {(form.formState.errors.items as any)?.[index]?.comment && (
+                                                /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+                                                <p className="text-xs text-red-500 mt-1">{(form.formState.errors.items as any)[index]?.comment?.message as string}</p>
                                             )}
                                         </TableCell>
                                         <TableCell>

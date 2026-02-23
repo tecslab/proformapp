@@ -20,6 +20,7 @@ export const generateProformaPDF = async (proforma: {
         percentage_gain: number | string;
         quantity: number | string;
         description: string;
+        comment?: string | null;
         unit: string;
         line_total?: number | string;
     }[];
@@ -134,8 +135,9 @@ export const generateProformaPDF = async (proforma: {
     // --- ITEMS TABLE ---
     const tableData = items.map((item) => {
         const { unitPrice, lineTotal } = calculateItemDetails(Number(item.unit_cost), Number(item.percentage_gain), Number(item.quantity))
+        const descText = item.comment ? `${item.description}\n ` : item.description;
         return [
-            item.description,
+            descText,
             item.unit,
             item.quantity,
             unitPrice.toFixed(2),
@@ -170,6 +172,25 @@ export const generateProformaPDF = async (proforma: {
             2: { cellWidth: 17, halign: 'center' }, // Qty
             3: { cellWidth: 21, halign: 'right' }, // Price
             4: { cellWidth: 16, halign: 'right' }  // Total
+        },
+        didDrawCell: (data) => {
+            if (data.column.index === 0 && data.cell.section === 'body') {
+                const item = items[data.row.index];
+                if (item?.comment) {
+                    doc.setFontSize(7);
+                    doc.setTextColor(115, 115, 115); // Gray text
+                    // Render below the main description
+                    // The newline we added to text creates space. 
+                    // data.cell.y is the top of the cell.  Normal cell contents are drawn slightly below.
+                    // So we add around 8-9 points.
+                    doc.text(item.comment, data.cell.x + 2, data.cell.y + 8);
+
+                    // Reset to defaults
+                    doc.setFontSize(9);
+                    doc.setTextColor(0);
+                    doc.setFont("helvetica", "normal");
+                }
+            }
         },
         margin: { left: 14, right: 14 }
     })

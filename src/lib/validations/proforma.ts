@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 export const itemSchema = z.object({
     description: z.string().min(1, 'Description is required'),
+    comment: z.string().max(150, 'Max 150 characters').optional(),
     quantity: z.coerce.number().min(0.01, 'Quantity must be greater than 0'),
     unit: z.string().min(1, 'Unit is required'),
     unit_cost: z.coerce.number().min(0, 'Unit cost must be positive'),

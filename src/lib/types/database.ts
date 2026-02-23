@@ -53,6 +53,7 @@ export type Database = {
             }
             items: {
                 Row: {
+                    comment: string | null
                     created_at: string
                     description: string
                     id: string
@@ -64,6 +65,7 @@ export type Database = {
                     unit_cost: number
                 }
                 Insert: {
+                    comment?: string | null
                     created_at?: string
                     description: string
                     id?: string
@@ -75,6 +77,7 @@ export type Database = {
                     unit_cost: number
                 }
                 Update: {
+                    comment?: string | null
                     created_at?: string
                     description?: string
                     id?: string

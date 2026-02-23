@@ -161,6 +161,7 @@ export async function createProforma(data: ProformaFormData) {
     const itemsToInsert = calculation.items.map(item => ({
         proforma_id: proforma.id,
         description: item.description,
+        comment: item.comment,
         quantity: item.quantity,
         unit: item.unit,
         unit_cost: item.unit_cost,
@@ -225,6 +226,7 @@ export async function updateProforma(id: string, data: ProformaFormData) {
     const itemsToInsert = calculation.items.map(item => ({
         proforma_id: id,
         description: item.description,
+        comment: item.comment,
         quantity: item.quantity,
         unit: item.unit,
         unit_cost: item.unit_cost,
@@ -292,9 +294,10 @@ export async function cloneProforma(id: string) {
 
     // 4. Copy Items
     if (original.items && original.items.length > 0) {
-        const itemsToCopy = original.items.map((item: { description: string; quantity: number | string; unit: string; unit_cost: number | string; percentage_gain: number | string; line_total: number | string }) => ({
+        const itemsToCopy = original.items.map((item: { description: string; comment?: string | null; quantity: number | string; unit: string; unit_cost: number | string; percentage_gain: number | string; line_total: number | string }) => ({
             proforma_id: newProforma.id,
             description: item.description,
+            comment: item.comment,
             quantity: item.quantity,
             unit: item.unit,
             unit_cost: item.unit_cost,
@@ -310,7 +313,7 @@ export async function cloneProforma(id: string) {
 }
 
 // Helper for consistency
-function calculateProformaTotals(items: { unit_cost: number | string; percentage_gain: number | string; quantity: number | string; description: string; unit: string; line_total?: number | string }[], iva_percentage: number) {
+function calculateProformaTotals(items: { unit_cost: number | string; percentage_gain: number | string; quantity: number | string; description: string; comment?: string | null; unit: string; line_total?: number | string }[], iva_percentage: number) {
     let subtotal = 0
     const calculatedItems = items.map((item) => {
         const earned_value = Number(item.unit_cost) * (Number(item.percentage_gain) / 100)
