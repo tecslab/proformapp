@@ -27,6 +27,7 @@ export const generateProformaPDF = async (proforma: {
     proforma_number: number | string;
     date: string | number | Date;
     subtotal: number;
+    descuento?: number;
     iva_percentage: number;
     iva_amount: number;
     total: number;
@@ -212,6 +213,16 @@ export const generateProformaPDF = async (proforma: {
     doc.setFont("helvetica", "normal")
     doc.text("SUBTOTAL", totalsX + 2, finalY + 5)
     doc.text(proforma.subtotal.toFixed(2), totalsX + 74, finalY + 5, { align: 'right' })
+
+    // Descuento
+    if (proforma.descuento && proforma.descuento > 0) {
+        finalY += totalsRowH
+        const discount_amount = proforma.subtotal * (proforma.descuento / 100)
+        doc.rect(totalsX, finalY, totalsW, totalsRowH)
+        doc.line(totalsX + 38, finalY, totalsX + 38, finalY + totalsRowH)
+        doc.text(`DESCUENTO ${proforma.descuento}%`, totalsX + 2, finalY + 5)
+        doc.text(`-${discount_amount.toFixed(2)}`, totalsX + 74, finalY + 5, { align: 'right' })
+    }
 
     // IVA
     finalY += totalsRowH

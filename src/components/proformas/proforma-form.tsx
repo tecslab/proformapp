@@ -51,6 +51,7 @@ export function ProformaForm({ initialData, id, readOnly = false }: ProformaForm
         client_id: initialData.client_id,
         date: initialData.date,
         iva_percentage: initialData.iva_percentage,
+        descuento: initialData.descuento || 0,
         delivery_days: initialData.delivery_days || undefined,
         payment_methods: initialData.payment_methods || undefined,
         observations: initialData.observations || undefined,
@@ -66,6 +67,7 @@ export function ProformaForm({ initialData, id, readOnly = false }: ProformaForm
         client_id: '',
         date: new Date().toISOString(),
         iva_percentage: 15,
+        descuento: 0,
         items: [
             { quantity: 1, unit: 'u', description: '', comment: '', unit_cost: 0, percentage_gain: 0 }
         ],
@@ -85,6 +87,7 @@ export function ProformaForm({ initialData, id, readOnly = false }: ProformaForm
     // Watch items for calculations
     const items = useWatch({ control: form.control, name: 'items' })
     const ivaPercentage = Number(useWatch({ control: form.control, name: 'iva_percentage' })) || 0
+    const descuentoPercentage = Number(useWatch({ control: form.control, name: 'descuento' })) || 0
 
     // Calculations
     const calculateTotals = () => {
@@ -103,13 +106,15 @@ export function ProformaForm({ initialData, id, readOnly = false }: ProformaForm
             subtotal += total
         })
 
-        const iva_amount = subtotal * (ivaPercentage / 100)
-        const total = subtotal + iva_amount
+        const discount_amount = subtotal * (descuentoPercentage / 100)
+        const subtotal_discounted = subtotal - discount_amount
+        const iva_amount = subtotal_discounted * (ivaPercentage / 100)
+        const total = subtotal_discounted + iva_amount
 
-        return { subtotal, iva_amount, total }
+        return { subtotal, discount_amount, iva_amount, total }
     }
 
-    const { subtotal, iva_amount, total } = calculateTotals()
+    const { subtotal, discount_amount, iva_amount, total } = calculateTotals()
 
     // Fetch next proforma number only if creating
     useEffect(() => {
@@ -365,6 +370,18 @@ export function ProformaForm({ initialData, id, readOnly = false }: ProformaForm
                                 />
                             </span>
                             <span className="font-mono">${iva_amount.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm">
+                            <span className="text-muted-foreground flex items-center gap-2">
+                                Discount (%):
+                                <Input
+                                    type="number"
+                                    className="w-16 h-8"
+                                    {...form.register('descuento')}
+                                    disabled={readOnly}
+                                />
+                            </span>
+                            <span className="font-mono text-destructive">-${discount_amount.toFixed(2)}</span>
                         </div>
                         <Separator />
                         <div className="flex justify-between font-bold text-lg">

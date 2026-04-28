@@ -134,8 +134,8 @@ export async function createProforma(data: ProformaFormData) {
     }
 
     // 4. Calculate Totals
-    const { items, iva_percentage, ...headerData } = data
-    const calculation = calculateProformaTotals(items, iva_percentage)
+    const { items, iva_percentage, descuento, ...headerData } = data
+    const calculation = calculateProformaTotals(items, iva_percentage, descuento || 0)
 
     // 5. Insert Proforma
     const { data: proforma, error: insertError } = await supabase
@@ -147,6 +147,7 @@ export async function createProforma(data: ProformaFormData) {
             status: 'draft',
             subtotal: calculation.subtotal,
             iva_percentage,
+            descuento: descuento || 0,
             iva_amount: calculation.iva_amount,
             total: calculation.total
         })
@@ -199,8 +200,8 @@ export async function updateProforma(id: string, data: ProformaFormData) {
     }
 
     // 3. Calculate Totals
-    const { items, iva_percentage, ...headerData } = data
-    const calculation = calculateProformaTotals(items, iva_percentage)
+    const { items, iva_percentage, descuento, ...headerData } = data
+    const calculation = calculateProformaTotals(items, iva_percentage, descuento || 0)
 
     // 4. Update Header
     const { error: updateError } = await supabase
@@ -209,6 +210,7 @@ export async function updateProforma(id: string, data: ProformaFormData) {
             ...headerData,
             subtotal: calculation.subtotal,
             iva_percentage,
+            descuento: descuento || 0,
             iva_amount: calculation.iva_amount,
             total: calculation.total,
             updated_at: new Date().toISOString()
@@ -280,6 +282,7 @@ export async function cloneProforma(id: string) {
             date: new Date().toISOString(), // Current date
             status: 'draft',
             iva_percentage: original.iva_percentage,
+            descuento: original.descuento || 0,
             delivery_days: original.delivery_days,
             payment_methods: original.payment_methods,
             observations: original.observations,
@@ -313,7 +316,7 @@ export async function cloneProforma(id: string) {
 }
 
 // Helper for consistency
-function calculateProformaTotals(items: { unit_cost: number | string; percentage_gain: number | string; quantity: number | string; description: string; comment?: string | null; unit: string; line_total?: number | string }[], iva_percentage: number) {
+function calculateProformaTotals(items: { unit_cost: number | string; percentage_gain: number | string; quantity: number | string; description: string; comment?: string | null; unit: string; line_total?: number | string }[], iva_percentage: number, descuento: number = 0) {
     let subtotal = 0
     const calculatedItems = items.map((item) => {
         const earned_value = Number(item.unit_cost) * (Number(item.percentage_gain) / 100)
@@ -328,8 +331,10 @@ function calculateProformaTotals(items: { unit_cost: number | string; percentage
         }
     })
 
-    const iva_amount = subtotal * (iva_percentage / 100)
-    const total = subtotal + iva_amount
+    const discount_amount = subtotal * (descuento / 100)
+    const subtotal_discounted = subtotal - discount_amount
+    const iva_amount = subtotal_discounted * (iva_percentage / 100)
+    const total = subtotal_discounted + iva_amount
 
-    return { items: calculatedItems, subtotal, iva_amount, total }
+    return { items: calculatedItems, subtotal, iva_amount, total, discount_amount }
 }

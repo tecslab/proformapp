@@ -17,6 +17,7 @@ export const proformaSchema = z.object({
         message: 'Invalid date',
     }),
     iva_percentage: z.coerce.number().min(0).default(15),
+    descuento: z.coerce.number().min(0).max(100).optional().default(0),
     delivery_days: z.coerce.number().min(0).optional(),
     payment_methods: z.string().optional(),
     observations: z.string().optional(),
