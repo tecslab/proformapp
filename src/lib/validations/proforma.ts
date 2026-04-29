@@ -19,7 +19,7 @@ export const proformaSchema = z.object({
     iva_percentage: z.coerce.number().min(0).default(15),
     descuento: z.coerce.number().min(0).max(100).optional().default(0),
     delivery_days: z.coerce.number().min(0).optional(),
-    payment_methods: z.string().optional(),
+    payment_methods: z.string().optional().default('50% de anticipo y saldo contra entrega'),
     observations: z.string().optional(),
     items: z.array(itemSchema).min(1, 'At least one item is required'),
 })

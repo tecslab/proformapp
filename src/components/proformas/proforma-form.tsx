@@ -68,6 +68,7 @@ export function ProformaForm({ initialData, id, readOnly = false }: ProformaForm
         date: new Date().toISOString(),
         iva_percentage: 15,
         descuento: 0,
+        payment_methods: '50% de anticipo y saldo contra entrega',
         items: [
             { quantity: 1, unit: 'u', description: '', comment: '', unit_cost: 0, percentage_gain: 0 }
         ],
