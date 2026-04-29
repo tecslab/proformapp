@@ -92,6 +92,8 @@ export function ProformaForm({ initialData, id, readOnly = false }: ProformaForm
     // Calculations
     const calculateTotals = () => {
         let subtotal = 0
+        let totalCost = 0
+        let totalQuantity = 0
 
         items?.forEach((item: ItemFormData) => {
             const cost = Number(item.unit_cost) || 0
@@ -104,6 +106,8 @@ export function ProformaForm({ initialData, id, readOnly = false }: ProformaForm
             const total = unit_price * quantity
 
             subtotal += total
+            totalCost += cost * quantity
+            totalQuantity += quantity
         })
 
         const discount_amount = subtotal * (descuentoPercentage / 100)
@@ -111,10 +115,10 @@ export function ProformaForm({ initialData, id, readOnly = false }: ProformaForm
         const iva_amount = subtotal_discounted * (ivaPercentage / 100)
         const total = subtotal_discounted + iva_amount
 
-        return { subtotal, discount_amount, iva_amount, total }
+        return { subtotal, discount_amount, iva_amount, total, totalCost, totalQuantity }
     }
 
-    const { subtotal, discount_amount, iva_amount, total } = calculateTotals()
+    const { subtotal, discount_amount, iva_amount, total, totalCost, totalQuantity } = calculateTotals()
 
     // Fetch next proforma number only if creating
     useEffect(() => {
@@ -352,7 +356,22 @@ export function ProformaForm({ initialData, id, readOnly = false }: ProformaForm
                 </div>
             </div>
 
-            <div className="flex justify-end">
+            <div className="flex flex-col md:flex-row justify-end gap-4">
+                {/* Internal Cost Summary */}
+                <Card className="w-full md:w-1/4 bg-muted/30">
+                    <CardContent className="pt-6 space-y-4">
+                        <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Total Items:</span>
+                            <span className="font-mono">{totalQuantity}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm">
+                            <span className="text-muted-foreground">Total Cost:</span>
+                            <span className="font-mono">${totalCost.toFixed(2)}</span>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Totals Summary */}
                 <Card className="w-full md:w-1/3">
                     <CardContent className="pt-6 space-y-4">
                         <div className="flex justify-between text-sm">
