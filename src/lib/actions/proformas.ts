@@ -82,7 +82,6 @@ export async function getProforma(id: string) {
         .from('proformas')
         .select(`
             *,
-            items (*),
             clients (*)
         `)
         .eq('id', id)
@@ -92,12 +91,15 @@ export async function getProforma(id: string) {
         return { error: error.message }
     }
 
-    // Sort items by inserted order usually? or add an index column? 
-    // Default postgres return order isn't guaranteed. 
-    // For now we assume they come back reasonably or sort by insertion if we had an auto-inc or created_at.
-    // items have created_at usually.
-    if (data.items) {
-        data.items.sort((a: { created_at: string }, b: { created_at: string }) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+    const { data: items, error: itemsError } = await supabase
+        .from('items')
+        .select('*')
+        .eq('proforma_id', id)
+        .order('position', { ascending: true })
+        .order('id', { ascending: true })
+
+    if (itemsError) {
+        return { error: itemsError.message }
     }
 
     // Ensure clients is present (it might be null if FK constraint isn't strict, though it should be)
@@ -106,7 +108,7 @@ export async function getProforma(id: string) {
         // For now, let's just let it be, but the generator needs to handle it.
     }
 
-    return { data, error: null }
+    return { data: { ...data, items: items || [] }, error: null }
 }
 
 export async function createProforma(data: ProformaFormData) {
@@ -159,8 +161,9 @@ export async function createProforma(data: ProformaFormData) {
     }
 
     // 6. Insert Items
-    const itemsToInsert = calculation.items.map(item => ({
+    const itemsToInsert = calculation.items.map((item, index) => ({
         proforma_id: proforma.id,
+        position: index,
         description: item.description,
         comment: item.comment,
         quantity: item.quantity,
@@ -225,8 +228,9 @@ export async function updateProforma(id: string, data: ProformaFormData) {
     if (deleteError) return { error: `Error clearing old items: ${deleteError.message}` }
 
     // Inserting
-    const itemsToInsert = calculation.items.map(item => ({
+    const itemsToInsert = calculation.items.map((item, index) => ({
         proforma_id: id,
+        position: index,
         description: item.description,
         comment: item.comment,
         quantity: item.quantity,
@@ -297,8 +301,9 @@ export async function cloneProforma(id: string) {
 
     // 4. Copy Items
     if (original.items && original.items.length > 0) {
-        const itemsToCopy = original.items.map((item: { description: string; comment?: string | null; quantity: number | string; unit: string; unit_cost: number | string; percentage_gain: number | string; line_total: number | string }) => ({
+        const itemsToCopy = original.items.map((item: { description: string; comment?: string | null; quantity: number | string; unit: string; unit_cost: number | string; percentage_gain: number | string; line_total: number | string }, index: number) => ({
             proforma_id: newProforma.id,
+            position: index,
             description: item.description,
             comment: item.comment,
             quantity: item.quantity,
@@ -308,7 +313,11 @@ export async function cloneProforma(id: string) {
             line_total: item.line_total
         }))
 
-        await supabase.from('items').insert(itemsToCopy)
+        const { error: copyItemsError } = await supabase.from('items').insert(itemsToCopy)
+        if (copyItemsError) {
+            await supabase.from('proformas').delete().eq('id', newProforma.id)
+            return { error: `Failed to copy items: ${copyItemsError.message}` }
+        }
     }
 
     revalidatePath('/dashboard/proformas')

@@ -285,6 +285,7 @@
 - quantity: decimal(10,2)
 - unit: varchar(20)
 - percentage_gain: decimal(5,2)
+- position: integer
 - line_total: decimal(10,2)
 - created_at: timestamp
 ```
@@ -321,6 +322,7 @@
 
 4. **Items**
    - Belong to single proforma
+   - Ordered by explicit `position` within each proforma
    - Line total = (unit_cost × quantity) × (1 + percentage_gain/100)
    - Free text unit field
    - Deleted when parent proforma is deleted (CASCADE)

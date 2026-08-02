@@ -59,6 +59,7 @@ export type Database = {
                     id: string
                     line_total: number
                     percentage_gain: number
+                    position: number
                     proforma_id: string
                     quantity: number
                     unit: string
@@ -71,6 +72,7 @@ export type Database = {
                     id?: string
                     line_total: number
                     percentage_gain?: number
+                    position: number
                     proforma_id: string
                     quantity: number
                     unit: string
@@ -83,6 +85,7 @@ export type Database = {
                     id?: string
                     line_total?: number
                     percentage_gain?: number
+                    position?: number
                     proforma_id?: string
                     quantity?: number
                     unit?: string
