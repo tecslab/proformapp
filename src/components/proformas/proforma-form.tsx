@@ -1,10 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { type DragEvent, useEffect, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useFieldArray, useForm, useWatch } from 'react-hook-form'
-import { CalendarIcon, Plus, Trash2 } from 'lucide-react'
+import { CalendarIcon, GripVertical, Plus, Trash2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -42,7 +41,6 @@ interface ProformaFormProps {
 }
 
 export function ProformaForm({ initialData, id, readOnly = false }: ProformaFormProps) {
-    // const router = useRouter()
     const [loading, setLoading] = useState(false)
     const [nextParams, setNextParams] = useState<number | null>(null)
 
@@ -80,10 +78,37 @@ export function ProformaForm({ initialData, id, readOnly = false }: ProformaForm
         defaultValues: defaultValues,
     })
 
-    const { fields, append, remove } = useFieldArray({
+    const { fields, append, remove, move } = useFieldArray({
         control: form.control,
         name: 'items',
     })
+    const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
+    const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
+    const canReorder = !readOnly && (!id || initialData?.status === 'draft')
+
+    function handleDragStart(event: DragEvent<HTMLTableRowElement>, index: number) {
+        if (!canReorder) return
+
+        event.dataTransfer.effectAllowed = 'move'
+        event.dataTransfer.setData('text/plain', String(index))
+        setDraggedIndex(index)
+    }
+
+    function handleDrop(event: DragEvent<HTMLTableRowElement>, index: number) {
+        event.preventDefault()
+
+        if (canReorder && draggedIndex !== null && draggedIndex !== index) {
+            move(draggedIndex, index)
+        }
+
+        setDraggedIndex(null)
+        setDragOverIndex(null)
+    }
+
+    function clearDragState() {
+        setDraggedIndex(null)
+        setDragOverIndex(null)
+    }
 
     // Watch items for calculations
     const items = useWatch({ control: form.control, name: 'items' })
@@ -120,6 +145,7 @@ export function ProformaForm({ initialData, id, readOnly = false }: ProformaForm
     }
 
     const { subtotal, discount_amount, iva_amount, total, totalCost, totalQuantity } = calculateTotals()
+    const totalGain = subtotal - discount_amount - totalCost
 
     // Fetch next proforma number only if creating
     useEffect(() => {
@@ -251,6 +277,7 @@ export function ProformaForm({ initialData, id, readOnly = false }: ProformaForm
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                {canReorder && <TableHead className="w-[40px]"></TableHead>}
                                 <TableHead className="w-[80px]">Qty</TableHead>
                                 <TableHead className="w-[80px]">Unit</TableHead>
                                 <TableHead>Description</TableHead>
@@ -273,7 +300,34 @@ export function ProformaForm({ initialData, id, readOnly = false }: ProformaForm
                                 const rowTotal = price * qty
 
                                 return (
-                                    <TableRow key={field.id}>
+                                    <TableRow
+                                        key={field.id}
+                                        draggable={canReorder}
+                                        onDragStart={(event) => handleDragStart(event, index)}
+                                        onDragOver={(event) => {
+                                            if (!canReorder) return
+                                            event.preventDefault()
+                                            event.dataTransfer.dropEffect = 'move'
+                                            setDragOverIndex(index)
+                                        }}
+                                        onDrop={(event) => handleDrop(event, index)}
+                                        onDragEnd={clearDragState}
+                                        className={cn(
+                                            canReorder && 'cursor-grab active:cursor-grabbing',
+                                            dragOverIndex === index && draggedIndex !== index && 'bg-muted/60'
+                                        )}
+                                    >
+                                        {canReorder && (
+                                            <TableCell className="w-[40px] px-2">
+                                                <span
+                                                    className="flex items-center justify-center text-muted-foreground"
+                                                    title="Drag to reorder"
+                                                    aria-label="Drag to reorder item"
+                                                >
+                                                    <GripVertical className="h-4 w-4" />
+                                                </span>
+                                            </TableCell>
+                                        )}
                                         <TableCell>
                                             <Input
                                                 type="number"
@@ -368,6 +422,10 @@ export function ProformaForm({ initialData, id, readOnly = false }: ProformaForm
                         <div className="flex justify-between items-center text-sm">
                             <span className="text-muted-foreground">Total Cost:</span>
                             <span className="font-mono">${totalCost.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm">
+                            <span className="text-muted-foreground">Total Gain:</span>
+                            <span className="font-mono">${totalGain.toFixed(2)}</span>
                         </div>
                     </CardContent>
                 </Card>

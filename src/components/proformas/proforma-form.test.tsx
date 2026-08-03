@@ -136,6 +136,43 @@ describe('ProformaForm', () => {
         expect(screen.getAllByRole('row')).toHaveLength(2)
     })
 
+    it('reorders draft items through drag and drop before saving', async () => {
+        const initialData = {
+            status: 'draft',
+            client_id: MOCK_CLIENT_ID,
+            date: '2026-08-02T00:00:00.000Z',
+            iva_percentage: 15,
+            descuento: 0,
+            proforma_number: 1001,
+            items: [
+                { quantity: 1, unit: 'u', description: 'First item', comment: '', unit_cost: 10, percentage_gain: 0 },
+                { quantity: 1, unit: 'u', description: 'Second item', comment: '', unit_cost: 20, percentage_gain: 0 },
+            ],
+        }
+        const dataTransfer = {
+            effectAllowed: 'none',
+            dropEffect: 'none',
+            setData: jest.fn(),
+        }
+
+        render(<ProformaForm initialData={initialData} id="proforma-123" />)
+
+        const rows = screen.getAllByRole('row')
+        fireEvent.dragStart(rows[2], { dataTransfer })
+        fireEvent.dragOver(rows[1], { dataTransfer })
+        fireEvent.drop(rows[1], { dataTransfer })
+        fireEvent.submit(document.querySelector('form')!)
+
+        await waitFor(() => {
+            expect(updateProforma).toHaveBeenCalledWith('proforma-123', expect.objectContaining({
+                items: [
+                    expect.objectContaining({ description: 'Second item' }),
+                    expect.objectContaining({ description: 'First item' }),
+                ],
+            }))
+        })
+    })
+
     it('submits valid data to createProforma', async () => {
         (createProforma as jest.Mock).mockResolvedValue({ error: null })
         render(<ProformaForm />)
