@@ -438,15 +438,15 @@ export function ProformaForm({ initialData, id, readOnly = false }: ProformaForm
                 <Card className="w-full md:w-1/4 bg-muted/30">
                     <CardContent className="pt-6 space-y-4">
                         <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">Total Items:</span>
+                            <span className="text-muted-foreground">Items Totales:</span>
                             <span className="font-mono">{totalQuantity}</span>
                         </div>
                         <div className="flex justify-between items-center text-sm">
-                            <span className="text-muted-foreground">Total Cost:</span>
+                            <span className="text-muted-foreground">Costo Total:</span>
                             <span className="font-mono">${totalCost.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between items-center text-sm">
-                            <span className="text-muted-foreground">Total Gain:</span>
+                            <span className="text-muted-foreground">Ganancia Total:</span>
                             <span className="font-mono">${totalGain.toFixed(2)}</span>
                         </div>
                     </CardContent>
