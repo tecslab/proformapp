@@ -28,6 +28,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 import { createProforma, updateProforma, getNextProformaNumber } from '@/lib/actions/proformas'
 import { proformaSchema, type ProformaFormData, type ItemFormData } from '@/lib/validations/proforma'
@@ -85,6 +86,22 @@ export function ProformaForm({ initialData, id, readOnly = false }: ProformaForm
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
     const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
     const canReorder = !readOnly && (!id || initialData?.status === 'draft')
+
+    function addItem() {
+        append({ quantity: 1, unit: 'u', description: '', comment: '', unit_cost: 0, percentage_gain: 0 })
+    }
+
+    useEffect(() => {
+        function handleKeyboardShortcut(event: KeyboardEvent) {
+            if (!readOnly && event.ctrlKey && event.key.toLowerCase() === 'i') {
+                event.preventDefault()
+                append({ quantity: 1, unit: 'u', description: '', comment: '', unit_cost: 0, percentage_gain: 0 })
+            }
+        }
+
+        window.addEventListener('keydown', handleKeyboardShortcut)
+        return () => window.removeEventListener('keydown', handleKeyboardShortcut)
+    }, [append, readOnly])
 
     function handleDragStart(event: DragEvent<HTMLTableRowElement>, index: number) {
         if (!canReorder) return
@@ -267,9 +284,14 @@ export function ProformaForm({ initialData, id, readOnly = false }: ProformaForm
                 <div className="flex justify-between items-center">
                     <h3 className="text-lg font-medium">Items</h3>
                     {!readOnly && (
-                        <Button type="button" variant="secondary" size="sm" onClick={() => append({ quantity: 1, unit: 'u', description: '', comment: '', unit_cost: 0, percentage_gain: 0 })}>
-                            <Plus className="mr-2 h-4 w-4" /> Add Item
-                        </Button>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button type="button" variant="secondary" size="sm" onClick={addItem}>
+                                    <Plus className="mr-2 h-4 w-4" /> Add Item
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>(Ctrl+I)</TooltipContent>
+                        </Tooltip>
                     )}
                 </div>
 
