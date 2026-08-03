@@ -4,6 +4,7 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
 import { numberToWordsEs, calculateItemDetails } from './calculations'
+import { buildDescriptionCellLines } from './pdf-table-utils'
 
 export const generateProformaPDF = async (proforma: {
     clients: {
@@ -134,20 +135,33 @@ export const generateProformaPDF = async (proforma: {
     doc.setFont("helvetica", "normal"); doc.text(client.email || '-', col4 + 2, y + 5)
 
     // --- ITEMS TABLE ---
-    const tableData = items.map((item) => {
+    const preparedRows = items.map((item) => {
         const { unitPrice, lineTotal } = calculateItemDetails(Number(item.unit_cost), Number(item.percentage_gain), Number(item.quantity))
-        const descText = item.comment ? `${item.description}\n ` : item.description;
-        return [
-            descText,
-            item.unit,
-            item.quantity,
-            unitPrice.toFixed(2),
-            lineTotal.toFixed(2)
-        ]
+        const description = buildDescriptionCellLines(
+            item.description,
+            item.comment,
+            (text, width) => doc.splitTextToSize(text, width),
+        )
+
+        return {
+            ...description,
+            values: [
+                // AutoTable measures newline-separated text as separate lines.
+                // Passing the array directly would stringify it with commas.
+                { content: description.cellLines.join('\n') },
+                item.unit,
+                item.quantity,
+                unitPrice.toFixed(2),
+                lineTotal.toFixed(2),
+            ],
+        }
     })
+
+    const tableData = preparedRows.map((row) => row.values)
 
     autoTable(doc, {
         startY: y + 10,
+        rowPageBreak: 'avoid',
         head: [['DESCRIPCIÓN', 'UNIDAD', 'CANTIDAD', 'PRECIO UNIT', 'TOTAL']],
         body: tableData,
         theme: 'plain',
@@ -176,15 +190,22 @@ export const generateProformaPDF = async (proforma: {
         },
         didDrawCell: (data) => {
             if (data.column.index === 0 && data.cell.section === 'body') {
-                const item = items[data.row.index];
-                if (item?.comment) {
+                const row = preparedRows[data.row.index]
+                if (row?.commentLines.length) {
                     doc.setFontSize(7);
                     doc.setTextColor(115, 115, 115); // Gray text
-                    // Render below the main description
-                    // The newline we added to text creates space. 
-                    // data.cell.y is the top of the cell.  Normal cell contents are drawn slightly below.
-                    // So we add around 8-9 points.
-                    doc.text(item.comment, data.cell.x + 2, data.cell.y + 8);
+
+                    // AutoTable measures the blank lines in `cellLines` using
+                    // the table font (9pt). Use the same line spacing to place
+                    // the comment exactly below the description.
+                    const scaleFactor = 2.8346 // jsPDF's default mm scale factor
+                    const lineHeight = 9 * 1.15 / scaleFactor
+                    const commentBaselineOffset = 7 * (2 - 1.15) / scaleFactor
+                    const commentY = data.cell.y
+                        + data.cell.padding('top')
+                        + row.descriptionLines.length * lineHeight
+                        + commentBaselineOffset
+                    doc.text(row.commentLines, data.cell.x + 2, commentY);
 
                     // Reset to defaults
                     doc.setFontSize(9);
