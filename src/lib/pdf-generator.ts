@@ -218,7 +218,40 @@ export const generateProformaPDF = async (proforma: {
     })
 
     // --- TOTALS & FOOTER ---
-    let finalY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 5
+    const tableFinalY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY
+    const pageHeight = doc.internal.pageSize.getHeight()
+    const bottomMargin = 14
+    const totalsRowCount = 4 + (proforma.descuento !== undefined && Number(proforma.descuento) > 0 ? 1 : 0)
+    const totalsHeight = totalsRowCount * 7
+
+    // Measure the variable-height footer before deciding whether it fits on
+    // the current page. The footer used to be drawn past the page boundary.
+    const totalRounded = Math.round(proforma.total * 100) / 100
+    const amountInWords = numberToWordsEs(totalRounded).toUpperCase()
+    doc.setFontSize(8)
+    const splitAmount = doc.splitTextToSize(`SON: ${amountInWords}`, 95)
+    const boxHeight = splitAmount.length > 1 ? 8 + (splitAmount.length - 1) * 5 : 8
+
+    const splitObs = proforma.observations
+        ? doc.splitTextToSize(proforma.observations, 160)
+        : []
+    const extraObsHeight = splitObs.length > 1 ? (splitObs.length - 1) * 3.5 : 0
+    const paymentText = proforma.payment_methods || '60% Para Iniciar 40% Contra-entrega'
+    const splitPayment = doc.splitTextToSize(paymentText, 160)
+    const paymentExtraHeight = splitPayment.length > 1 ? (splitPayment.length - 1) * 3.5 : 0
+    const footerHeight = boxHeight + 7 + 12 + 20 + extraObsHeight + 20 + paymentExtraHeight + 5
+
+    // Restore the normal table/body size before drawing totals.
+    doc.setFontSize(9)
+
+    let sectionY = tableFinalY
+    const totalsBottom = sectionY + 5 + totalsHeight
+    if (totalsBottom > pageHeight - bottomMargin) {
+        doc.addPage()
+        sectionY = 20
+    }
+
+    let finalY = sectionY + 5
 
     // Totals Table (Right side)
     const totalsX = 120
@@ -271,18 +304,16 @@ export const generateProformaPDF = async (proforma: {
     doc.text(proforma.total.toFixed(2), totalsX + 74, finalY + 5, { align: 'right' })
     doc.setTextColor(0, 0, 0)
 
-    // Left Side Footer
-    // Reset Y to top of totals section
-    let footerY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10
-
-    // Amount convert
-    const totalRounded = Math.round(proforma.total * 100) / 100
-    const amountInWords = numberToWordsEs(totalRounded).toUpperCase()
+    // Left Side Footer. Move the complete footer to a new page when it does
+    // not fit below the table/totals on the current page.
+    let footerY = sectionY + 10
+    if (sectionY === tableFinalY && footerY + footerHeight > pageHeight - bottomMargin) {
+        doc.addPage()
+        footerY = 20
+    }
 
     doc.setFillColor(217, 217, 217) // #d9d9d9
     doc.setFontSize(8)
-    const splitAmount = doc.splitTextToSize(`SON: ${amountInWords}`, 95)
-    const boxHeight = splitAmount.length > 1 ? 8 + (splitAmount.length - 1) * 5 : 8
 
     doc.rect(14, footerY, 100, boxHeight, 'F')
     doc.text(splitAmount, 16, footerY + 5)
@@ -300,23 +331,17 @@ export const generateProformaPDF = async (proforma: {
     doc.text("PRECIOS INCLUYEN IVA", 20, footerY + 5)
     doc.text("PLAZO DE ENTREGA FIJO SI NO SE REALIZAN CAMBIOS", 20, footerY + 9)
 
-    let extraObsHeight = 0
     if (proforma.observations) {
-        const splitObs = doc.splitTextToSize(proforma.observations, 160)
         doc.text(splitObs, 20, footerY + 13)
-        // Approximate height increase: (lines - 1) * line_height_approx
-        if (splitObs.length > 1) {
-            extraObsHeight = (splitObs.length - 1) * 3.5
-        }
     }
 
     footerY += 20 + extraObsHeight
     doc.setFont("helvetica", "bold")
     doc.text("FORMAS DE PAGO", 14, footerY)
     doc.setFont("helvetica", "normal")
-    doc.text(proforma.payment_methods || '60% Para Iniciar 40% Contra-entrega', 20, footerY + 5)
+    doc.text(splitPayment, 20, footerY + 5)
 
-    footerY += 20
+    footerY += 20 + paymentExtraHeight
     doc.text("ATENTAMENTE", 20, footerY)
     doc.setFont("helvetica", "bold")
     doc.text("DIS. VERÓNICA CEDILLO", 20, footerY + 5)
