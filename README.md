@@ -14,6 +14,7 @@ ProformApp is a Spanish-language application for managing clients, producing num
 - Phase 3: multiple execution tasks per scope item, general project costs, provider assignment, estimated/committed costs, and editable execution status (including cancellation).
 - Phase 4: expected collections, actual receipts/payments, payment previews, derived balances and audited transaction voiding.
 - Phase 5: RLS-aware SQL financial summary, project dashboard totals, margins and attention alerts. Project financial cards read the SQL view rather than recalculating totals from UI records.
+- Phase 6: incidents, responsibility/cost tracking, billability decisions, resolution and a contextual shortcut to create an additional proforma.
 
 The quote product/design reference is [proforma_app_specs.md](./proforma_app_specs.md). Project-management phases and rules are defined in [implementacionGP.md](./implementacionGP.md); the selected discount model is Strategy B (a global commercial adjustment, with no persisted item-level allocation).
 
@@ -98,6 +99,12 @@ Important: this repository does **not** contain an initial schema migration. Its
 
 ## Continuing development
 
+Apply `20260920020000_create_project_incidents.sql` after Phase 5. Incident
+costs are informational; actual commitments/payments stay in their existing
+flows. Billable incidents can prefill a new proforma for review, finalization
+and manual import. No sale is created automatically. Follow the
+[Phase 6 acceptance checks](./supabase/tests/phase6-manual.md) in Supabase.
+
 Apply `20260920010000_create_project_financial_summary.sql` after Phase 4.
 The summary aggregates each source before joining, attributes partial-import
 sales virtually, and ignores voided payments. Expected margin deducts active
@@ -115,7 +122,7 @@ PDF branding is intentionally application-specific: [`src/lib/pdf-generator.ts`]
 
 ## Current verification baseline
 
-The repository currently has Jest tests for validations, calculations, PDF helpers, and selected UI/forms. On 2026-09-20, `npm test -- --runInBand` produced 81 passing tests across 14 suites.
+The repository currently has Jest tests for validations, calculations, PDF helpers, and selected UI/forms. On 2026-09-20, `npm test -- --runInBand` produced 88 passing tests across 15 suites.
 
 Apply `20260920000000_create_project_financials.sql` after Phase 3 and follow
 [Phase 4 acceptance checks](./supabase/tests/phase4-manual.md) for hosted-database

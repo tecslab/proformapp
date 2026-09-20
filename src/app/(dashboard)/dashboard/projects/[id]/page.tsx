@@ -9,6 +9,8 @@ import { getProjectFinances } from '@/lib/actions/project-finances'
 import { ProjectFinances } from '@/components/projects/project-finances'
 import { getProjectFinancialSummary } from '@/lib/actions/project-summary'
 import { ProjectSummary } from '@/components/projects/financial-summary'
+import { ProjectIncidents } from '@/components/projects/project-incidents'
+import { getProjectIncidents } from '@/lib/actions/project-incidents'
 import { PROJECT_STATUS_LABELS, type ProjectStatus } from '@/lib/validations/project'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -22,7 +24,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
     const { id } = await params
     const { data: project } = await getProject(id)
     if (!project) notFound()
-    const [execution, finances, summary] = await Promise.all([getExecution(id), getProjectFinances(id), getProjectFinancialSummary(id)])
+    const [execution, finances, summary, incidents] = await Promise.all([getExecution(id), getProjectFinances(id), getProjectFinancialSummary(id), getProjectIncidents(id)])
     const [{ data: scope, error: scopeError }, { data: importableProformas, error: importError }] = await Promise.all([
         getProjectScope(id),
         getImportableProformas(id),
@@ -44,5 +46,6 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
             scope={scope.flatMap(entry => entry.project_scope_items)}
             proformas={scope.map(entry => ({ id: entry.id, label: 'Proforma #' + (entry.proformas?.proforma_number ?? '—') }))}
         />}
+        {incidents.error ? <p role="alert" className="text-destructive">No se pudieron cargar las incidencias: {incidents.error}</p> : <ProjectIncidents projectId={id} incidents={incidents.data} />}
     </div>
 }

@@ -9,6 +9,14 @@ export type Json =
 export type Database = {
     public: {
         Tables: {
+            project_incidents: {
+                Row: IncidentRow
+                Insert: Pick<IncidentRow, 'user_id' | 'project_id' | 'title' | 'incident_date'> & Partial<IncidentRow>
+                Update: Partial<IncidentRow>
+                Relationships: [
+                    { foreignKeyName: "project_incidents_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"] },
+                ]
+            }
             project_transactions: {
                 Row: TransactionRow
                 Insert: Pick<TransactionRow, 'user_id' | 'project_id' | 'direction' | 'type' | 'amount' | 'transaction_date' | 'description'> & Partial<TransactionRow>
@@ -494,6 +502,13 @@ export type Database = {
 }
 
 type PublicSchema = Database[Extract<keyof Database, "public">]
+
+export type IncidentRow = {
+    id: string; user_id: string; project_id: string; title: string; description: string | null
+    incident_date: string; responsibility: string; estimated_cost: number | null; final_cost: number | null
+    billable_to_client: boolean | null; resolved: boolean; resolution_notes: string | null
+    created_at: string; updated_at: string
+}
 
 export type ProjectFinancialSummary = {
     project_id: string; user_id: string; name: string; status: string; archived_at: string | null
