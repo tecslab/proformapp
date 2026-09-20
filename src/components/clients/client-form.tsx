@@ -20,7 +20,12 @@ import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 
 interface ClientFormProps {
-    client?: ClientFormData & { id: string }
+    client?: Omit<ClientFormData, 'address' | 'phone' | 'email'> & {
+        id: string
+        address?: string | null
+        phone?: string | null
+        email?: string | null
+    }
 }
 
 export function ClientForm({ client }: ClientFormProps) {

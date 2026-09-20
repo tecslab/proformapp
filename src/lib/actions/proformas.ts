@@ -53,7 +53,7 @@ export async function getProformas(query: string = '', page: number = 1, pageSiz
 
         const isNumber = !isNaN(Number(query))
         if (isNumber) {
-            dbQuery = dbQuery.eq('proforma_number', query)
+            dbQuery = dbQuery.eq('proforma_number', Number(query))
         } else {
             // Search by client name requires !inner to filter the parent rows based on child condition
             dbQuery = supabase
@@ -166,11 +166,11 @@ export async function createProforma(data: ProformaFormData) {
         position: index,
         description: item.description,
         comment: item.comment,
-        quantity: item.quantity,
+        quantity: Number(item.quantity),
         unit: item.unit,
-        unit_cost: item.unit_cost,
-        percentage_gain: item.percentage_gain,
-        line_total: item.line_total
+        unit_cost: Number(item.unit_cost),
+        percentage_gain: Number(item.percentage_gain),
+        line_total: Number(item.line_total)
     }))
 
     const { error: itemsError } = await supabase
@@ -233,11 +233,11 @@ export async function updateProforma(id: string, data: ProformaFormData) {
         position: index,
         description: item.description,
         comment: item.comment,
-        quantity: item.quantity,
+        quantity: Number(item.quantity),
         unit: item.unit,
-        unit_cost: item.unit_cost,
-        percentage_gain: item.percentage_gain,
-        line_total: item.line_total
+        unit_cost: Number(item.unit_cost),
+        percentage_gain: Number(item.percentage_gain),
+        line_total: Number(item.line_total)
     }))
 
     const { error: insertError } = await supabase.from('items').insert(itemsToInsert)
@@ -301,7 +301,7 @@ export async function cloneProforma(id: string) {
 
     // 4. Copy Items
     if (original.items && original.items.length > 0) {
-        const itemsToCopy = original.items.map((item: { description: string; comment?: string | null; quantity: number | string; unit: string; unit_cost: number | string; percentage_gain: number | string; line_total: number | string }, index: number) => ({
+        const itemsToCopy = original.items.map((item, index) => ({
             proforma_id: newProforma.id,
             position: index,
             description: item.description,

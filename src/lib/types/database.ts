@@ -124,6 +124,7 @@ export type Database = {
                     client_id: string
                     created_at: string
                     date: string
+                    descuento: number
                     delivery_days: number | null
                     id: string
                     iva_amount: number
@@ -141,6 +142,7 @@ export type Database = {
                     client_id: string
                     created_at?: string
                     date?: string
+                    descuento?: number
                     delivery_days?: number | null
                     id?: string
                     iva_amount?: number
@@ -158,6 +160,7 @@ export type Database = {
                     client_id?: string
                     created_at?: string
                     date?: string
+                    descuento?: number
                     delivery_days?: number | null
                     id?: string
                     iva_amount?: number

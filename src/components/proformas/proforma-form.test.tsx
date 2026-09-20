@@ -113,7 +113,7 @@ describe('ProformaForm', () => {
 
         // Check Total => 240 + 36 = 276
         // We look for the bold Total line
-        const totalContainer = screen.getByText(/Total:/).closest('div')
+        const totalContainer = screen.getByText(/^Total:$/).closest('div')
         expect(within(totalContainer!).getByText('$276.00')).toBeInTheDocument()
     })
 

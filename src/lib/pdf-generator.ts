@@ -8,13 +8,13 @@ import { buildDescriptionCellLines } from './pdf-table-utils'
 
 export const generateProformaPDF = async (proforma: {
     clients: {
-        first_name?: string;
-        last_name?: string;
-        cedula_ruc?: string;
-        phone?: string;
-        email?: string;
-        city?: string;
-        address?: string;
+        first_name?: string | null;
+        last_name?: string | null;
+        cedula_ruc?: string | null;
+        phone?: string | null;
+        email?: string | null;
+        city?: string | null;
+        address?: string | null;
     } | null;
     items: {
         unit_cost: number | string;
@@ -32,9 +32,9 @@ export const generateProformaPDF = async (proforma: {
     iva_percentage: number;
     iva_amount: number;
     total: number;
-    delivery_days: string;
-    payment_methods: string;
-    observations: string;
+    delivery_days: number | null;
+    payment_methods: string | null;
+    observations: string | null;
 }) => {
     const doc = new jsPDF()
     const client = proforma.clients || {}
