@@ -10,6 +10,8 @@ ProformApp is a Spanish-language application for managing clients, producing num
 - Per-user sequential proforma numbers through the `get_next_proforma_number` database function.
 - Draft-only editing, finalization, cloning, search/pagination, and client-side PDF download.
 - Phase 1 of project management: project and provider/master CRUD, ownership-based RLS, archival/deactivation, and dashboard navigation.
+- Phase 2 of project management: transactional partial import of finalized proformas, immutable commercial scope snapshots, and global discount snapshots using Strategy B.
+- Phase 3: multiple execution tasks per scope item, general project costs, provider assignment, estimated/committed costs, and editable execution status (including cancellation).
 
 The quote product/design reference is [proforma_app_specs.md](./proforma_app_specs.md). Project-management phases and rules are defined in [implementacionGP.md](./implementacionGP.md); the selected discount model is Strategy B (a global commercial adjustment, with no persisted item-level allocation).
 
@@ -68,6 +70,9 @@ The app expects these Supabase tables:
 - `proforma_sequence` — one row per user for allocating sequential quote numbers.
 - `projects` — user-owned operational projects linked to existing clients; archived rather than hard-deleted in the UI.
 - `providers` — user-owned suppliers, masters, contractors, and service providers; deactivated rather than hard-deleted in the UI.
+- `project_proformas` — links imported finalized proformas to projects and snapshots their global commercial totals.
+- `project_scope_items` — immutable snapshots of selected commercial lines; original line values are retained without allocating the global discount.
+- `project_execution_items` — operational tasks linked optionally to scope and providers. Costs use numeric(12,2); unknown amounts are null and zero remains an explicit amount. RLS checks ownership and same-project scope on insert/update. Apply `20260919020000_create_project_execution.sql` after Phase 2.
 
 It also calls the Postgres function `get_next_proforma_number(p_user_id uuid)` and relies on foreign keys from proformas to clients and items to proformas. RLS policies must limit each table and function to the authenticated owner. The expected columns and relationships are documented in `src/lib/types/database.ts`.
 
@@ -95,7 +100,7 @@ PDF branding is intentionally application-specific: [`src/lib/pdf-generator.ts`]
 
 ## Current verification baseline
 
-The repository currently has Jest tests for validations, calculations, PDF helpers, and selected UI/forms. On 2026-09-19, `npm test -- --runInBand` produced 43 passing tests across 10 suites.
+The repository currently has Jest tests for validations, calculations, PDF helpers, and selected UI/forms. On 2026-09-19, `npm test -- --runInBand` produced 46 passing tests across 10 suites.
 
 Playwright coverage exists for authentication, clients, and proformas. Project/provider CRUD and cross-user RLS isolation remain the next high-value end-to-end scenarios.
 

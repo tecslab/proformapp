@@ -48,3 +48,27 @@ export const projectSchema = z.object({
 })
 
 export type ProjectFormData = z.infer<typeof projectSchema>
+
+export const PROJECT_PROFORMA_RELATION_TYPES = ['initial', 'additional'] as const
+
+export const PROJECT_PROFORMA_RELATION_LABELS: Record<(typeof PROJECT_PROFORMA_RELATION_TYPES)[number], string> = {
+    initial: 'Alcance inicial',
+    additional: 'Alcance adicional',
+}
+
+export const importProjectProformaSchema = z.object({
+    project_id: z.string().uuid('Proyecto inválido'),
+    proforma_id: z.string().uuid('Proforma inválida'),
+    item_ids: z.array(z.string().uuid('Ítem inválido')).min(1, 'Selecciona al menos un ítem'),
+    relation_type: z.enum(PROJECT_PROFORMA_RELATION_TYPES),
+}).superRefine((data, context) => {
+    if (new Set(data.item_ids).size !== data.item_ids.length) {
+        context.addIssue({
+            code: 'custom',
+            path: ['item_ids'],
+            message: 'La selección contiene ítems duplicados',
+        })
+    }
+})
+
+export type ImportProjectProformaData = z.infer<typeof importProjectProformaSchema>

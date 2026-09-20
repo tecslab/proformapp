@@ -1,7 +1,12 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { projectSchema, type ProjectFormData } from '@/lib/validations/project'
+import {
+    importProjectProformaSchema,
+    projectSchema,
+    type ImportProjectProformaData,
+    type ProjectFormData,
+} from '@/lib/validations/project'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
@@ -167,4 +172,100 @@ export async function archiveProject(id: string) {
 
     revalidatePath('/dashboard/projects')
     return { error: null }
+}
+
+export async function getImportableProformas(projectId: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { data: [], error: 'No autorizado' }
+
+    const { data: project } = await supabase
+        .from('projects')
+        .select('id, client_id')
+        .eq('id', projectId)
+        .eq('user_id', user.id)
+        .is('archived_at', null)
+        .maybeSingle()
+
+    if (!project) return { data: [], error: 'Proyecto no encontrado' }
+
+    const [{ data: importedItems, error: importedError }, { data: proformas, error: proformasError }] = await Promise.all([
+        supabase
+            .from('project_scope_items')
+            .select('source_item_id')
+            .eq('project_id', projectId)
+            .eq('user_id', user.id),
+        supabase
+            .from('proformas')
+            .select('id, proforma_number, date, subtotal, descuento, iva_amount, total, items(*)')
+            .eq('user_id', user.id)
+            .eq('client_id', project.client_id)
+            .eq('status', 'finalized')
+            .order('proforma_number', { ascending: false })
+            .order('position', { referencedTable: 'items', ascending: true }),
+    ])
+
+    if (importedError) return { data: [], error: importedError.message }
+    if (proformasError) return { data: [], error: proformasError.message }
+
+    const importedIds = new Set((importedItems ?? []).map((item) => item.source_item_id))
+    const available = (proformas ?? [])
+        .map((proforma) => ({
+            ...proforma,
+            items: proforma.items.filter((item) => !importedIds.has(item.id)),
+        }))
+        .filter((proforma) => proforma.items.length > 0)
+
+    return { data: available, error: null }
+}
+
+export async function getProjectScope(projectId: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { data: [], error: 'No autorizado' }
+
+    const { data, error } = await supabase
+        .from('project_proformas')
+        .select(`
+            *,
+            proformas(proforma_number, date),
+            project_scope_items(*)
+        `)
+        .eq('project_id', projectId)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true })
+        .order('position', { referencedTable: 'project_scope_items', ascending: true })
+
+    if (error) return { data: [], error: error.message }
+    return { data: data ?? [], error: null }
+}
+
+export async function importProjectProforma(input: ImportProjectProformaData) {
+    const validation = importProjectProformaSchema.safeParse(input)
+    if (!validation.success) return { error: 'Datos de importación inválidos', details: validation.error.flatten() }
+
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'No autorizado' }
+
+    const data = validation.data
+    const { data: result, error } = await supabase.rpc('import_proforma_items_to_project', {
+        p_project_id: data.project_id,
+        p_proforma_id: data.proforma_id,
+        p_item_ids: data.item_ids,
+        p_relation_type: data.relation_type,
+    })
+
+    if (error) {
+        const knownMessages: Record<string, string> = {
+            '23505': 'Uno o más ítems ya fueron importados.',
+            '23514': 'La proforma debe estar finalizada y pertenecer al mismo cliente.',
+            'P0002': 'No se encontró el proyecto o la proforma.',
+            '42501': 'No tienes autorización para realizar esta importación.',
+        }
+        return { error: knownMessages[error.code] ?? error.message }
+    }
+
+    revalidatePath(`/dashboard/projects/${data.project_id}`)
+    return { data: result, error: null }
 }
