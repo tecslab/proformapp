@@ -12,6 +12,8 @@ ProformApp is a Spanish-language application for managing clients, producing num
 - Phase 1 of project management: project and provider/master CRUD, ownership-based RLS, archival/deactivation, and dashboard navigation.
 - Phase 2 of project management: transactional partial import of finalized proformas, immutable commercial scope snapshots, and global discount snapshots using Strategy B.
 - Phase 3: multiple execution tasks per scope item, general project costs, provider assignment, estimated/committed costs, and editable execution status (including cancellation).
+- Phase 4: expected collections, actual receipts/payments, payment previews, derived balances and audited transaction voiding.
+- Phase 5: RLS-aware SQL financial summary, project dashboard totals, margins and attention alerts. Project financial cards read the SQL view rather than recalculating totals from UI records.
 
 The quote product/design reference is [proforma_app_specs.md](./proforma_app_specs.md). Project-management phases and rules are defined in [implementacionGP.md](./implementacionGP.md); the selected discount model is Strategy B (a global commercial adjustment, with no persisted item-level allocation).
 
@@ -73,6 +75,8 @@ The app expects these Supabase tables:
 - `project_proformas` — links imported finalized proformas to projects and snapshots their global commercial totals.
 - `project_scope_items` — immutable snapshots of selected commercial lines; original line values are retained without allocating the global discount.
 - `project_execution_items` — operational tasks linked optionally to scope and providers. Costs use numeric(12,2); unknown amounts are null and zero remains an explicit amount. RLS checks ownership and same-project scope on insert/update. Apply `20260919020000_create_project_execution.sql` after Phase 2.
+- `project_receivables` — expected collections with optional due dates. The `project_receivable_balances` security-invoker view derives pending/partial/paid status from actual linked receipts; cancellation is explicit.
+- `project_transactions` — immutable real-money ledger. An optional `receivable_id` links receipts to expected collections. Only voiding with a reason is allowed after insertion; no authenticated DELETE policy exists. Financial foreign keys prevent cascading loss of history.
 
 It also calls the Postgres function `get_next_proforma_number(p_user_id uuid)` and relies on foreign keys from proformas to clients and items to proformas. RLS policies must limit each table and function to the authenticated owner. The expected columns and relationships are documented in `src/lib/types/database.ts`.
 
@@ -88,9 +92,20 @@ Important: this repository does **not** contain an initial schema migration. Its
 - A percentage discount is applied to the subtotal before IVA; total is discounted subtotal plus IVA.
 - Client deletion is soft deletion. Lists exclude records with `deleted_at` set.
 - Projects can only reference active clients owned by the authenticated user. Project archival and provider deactivation preserve historical records.
-- Project-management discounts use Strategy B: keep the original line amounts and snapshot the global discount when proforma import is implemented in Phase 2.
+- Project-management discounts use Strategy B: keep original line amounts and global proforma snapshots. Partial-import balances attribute the original client total in proportion to imported original line totals, rounded once per proforma; no allocated item prices are persisted.
+- Expected collections do not affect cash. Voided transactions do not affect balances. Outgoing expenses reduce cash; only payments linked to commitments reduce their outstanding balances.
+- Refunds/other inflows affect cash but are not classified as customer collections. Supplier overpayments do not reduce the outstanding obligations to other suppliers.
 
 ## Continuing development
+
+Apply `20260920010000_create_project_financial_summary.sql` after Phase 4.
+The summary aggregates each source before joining, attributes partial-import
+sales virtually, and ignores voided payments. Expected margin deducts active
+commitments, uncommitted expenses and paid amounts exceeding commitments.
+Actual margin is available only for completed projects. Dashboard totals cover
+all non-archived projects, including outstanding balances on completed projects.
+See [Phase 5 database checks](./supabase/tests/phase5-manual.md); live SQL/RLS
+verification is pending in Supabase. No Docker runtime is required for the app.
 
 Follow the established path for changes: form → Zod schema → Server Action → Supabase query → cache revalidation. Keep user ownership derived from `supabase.auth.getUser()` on the server; never accept a user ID from browser input.
 
@@ -100,7 +115,12 @@ PDF branding is intentionally application-specific: [`src/lib/pdf-generator.ts`]
 
 ## Current verification baseline
 
-The repository currently has Jest tests for validations, calculations, PDF helpers, and selected UI/forms. On 2026-09-19, `npm test -- --runInBand` produced 46 passing tests across 10 suites.
+The repository currently has Jest tests for validations, calculations, PDF helpers, and selected UI/forms. On 2026-09-20, `npm test -- --runInBand` produced 81 passing tests across 14 suites.
+
+Apply `20260920000000_create_project_financials.sql` after Phase 3 and follow
+[Phase 4 acceptance checks](./supabase/tests/phase4-manual.md) for hosted-database
+verification. The local Docker daemon was unavailable, so the financial migration
+and cross-user database checks have not been executed by the implementation agent.
 
 Playwright coverage exists for authentication, clients, and proformas. Project/provider CRUD and cross-user RLS isolation remain the next high-value end-to-end scenarios.
 

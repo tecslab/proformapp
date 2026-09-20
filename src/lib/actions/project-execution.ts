@@ -40,5 +40,6 @@ export async function saveExecution(input: ExecutionFormData, id?: string) {
     const { data, error } = await query.select('id').maybeSingle()
     if (error || !data) return { error: 'No se pudo guardar. Verifica el proyecto, alcance y proveedor seleccionados.' }
     revalidatePath('/dashboard/projects/' + value.project_id)
+    revalidatePath('/dashboard/projects')
     return { error: null }
 }

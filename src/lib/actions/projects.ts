@@ -267,5 +267,6 @@ export async function importProjectProforma(input: ImportProjectProformaData) {
     }
 
     revalidatePath(`/dashboard/projects/${data.project_id}`)
+    revalidatePath('/dashboard/projects')
     return { data: result, error: null }
 }

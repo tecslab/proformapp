@@ -9,6 +9,28 @@ export type Json =
 export type Database = {
     public: {
         Tables: {
+            project_transactions: {
+                Row: TransactionRow
+                Insert: Pick<TransactionRow, 'user_id' | 'project_id' | 'direction' | 'type' | 'amount' | 'transaction_date' | 'description'> & Partial<TransactionRow>
+                Update: Partial<TransactionRow>
+                Relationships: [
+                    { foreignKeyName: "project_transactions_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"] },
+                    { foreignKeyName: "project_transactions_project_proforma_id_fkey"; columns: ["project_proforma_id"]; isOneToOne: false; referencedRelation: "project_proformas"; referencedColumns: ["id"] },
+                    { foreignKeyName: "project_transactions_scope_item_id_fkey"; columns: ["scope_item_id"]; isOneToOne: false; referencedRelation: "project_scope_items"; referencedColumns: ["id"] },
+                    { foreignKeyName: "project_transactions_execution_item_id_fkey"; columns: ["execution_item_id"]; isOneToOne: false; referencedRelation: "project_execution_items"; referencedColumns: ["id"] },
+                    { foreignKeyName: "project_transactions_provider_id_fkey"; columns: ["provider_id"]; isOneToOne: false; referencedRelation: "providers"; referencedColumns: ["id"] },
+                    { foreignKeyName: "project_transactions_receivable_id_fkey"; columns: ["receivable_id"]; isOneToOne: false; referencedRelation: "project_receivables"; referencedColumns: ["id"] },
+                ]
+            }
+            project_receivables: {
+                Row: ReceivableRow
+                Insert: Pick<ReceivableRow, 'user_id' | 'project_id' | 'description' | 'expected_amount'> & Partial<ReceivableRow>
+                Update: Partial<ReceivableRow>
+                Relationships: [
+                    { foreignKeyName: "project_receivables_project_id_fkey"; columns: ["project_id"]; isOneToOne: false; referencedRelation: "projects"; referencedColumns: ["id"] },
+                    { foreignKeyName: "project_receivables_project_proforma_id_fkey"; columns: ["project_proforma_id"]; isOneToOne: false; referencedRelation: "project_proformas"; referencedColumns: ["id"] },
+                ]
+            }
             project_execution_items: {
                 Row: ExecutionRow
                 Insert: Pick<ExecutionRow, 'user_id' | 'project_id' | 'description'> & Partial<Omit<ExecutionRow, 'user_id' | 'project_id' | 'description'>>
@@ -436,7 +458,14 @@ export type Database = {
             }
         }
         Views: {
-            [_ in never]: never
+            project_financial_summary: {
+                Row: ProjectFinancialSummary
+                Relationships: []
+            }
+            project_receivable_balances: {
+                Row: ReceivableRow & { collected: number; balance: number; effective_status: string }
+                Relationships: []
+            }
         }
         Functions: {
             get_next_proforma_number: {
@@ -465,6 +494,28 @@ export type Database = {
 }
 
 type PublicSchema = Database[Extract<keyof Database, "public">]
+
+export type ProjectFinancialSummary = {
+    project_id: string; user_id: string; name: string; status: string; archived_at: string | null
+    net_sales: number; client_total_due: number; quoted_cost: number; committed_cost: number
+    supplier_balance: number; paid_over_commitment: number; collected: number; paid_cost: number
+    paid_uncommitted_costs: number; project_cash: number; overdue_receivables: number
+    client_balance: number; quoted_margin: number; expected_margin: number; actual_margin: number | null
+    advance_pending: boolean; cash_shortfall: boolean; closing_balance_pending: boolean
+}
+
+export type ReceivableRow = {
+    id: string; user_id: string; project_id: string; project_proforma_id: string | null
+    description: string; expected_amount: number; due_date: string | null; status: string
+    created_at: string; updated_at: string
+}
+export type TransactionRow = {
+    id: string; user_id: string; project_id: string; project_proforma_id: string | null
+    scope_item_id: string | null; execution_item_id: string | null; provider_id: string | null
+    receivable_id: string | null; direction: string; type: string; amount: number
+    transaction_date: string; description: string; payment_method: string | null; notes: string | null
+    voided_at: string | null; void_reason: string | null; created_at: string
+}
 
 export type ExecutionRow = {
     id: string

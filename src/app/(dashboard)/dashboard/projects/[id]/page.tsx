@@ -5,6 +5,10 @@ import { getImportableProformas, getProject, getProjectScope } from '@/lib/actio
 import { ProjectScope } from '@/components/projects/project-scope'
 import { ProjectExecution } from '@/components/projects/project-execution'
 import { getExecution } from '@/lib/actions/project-execution'
+import { getProjectFinances } from '@/lib/actions/project-finances'
+import { ProjectFinances } from '@/components/projects/project-finances'
+import { getProjectFinancialSummary } from '@/lib/actions/project-summary'
+import { ProjectSummary } from '@/components/projects/financial-summary'
 import { PROJECT_STATUS_LABELS, type ProjectStatus } from '@/lib/validations/project'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -18,7 +22,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
     const { id } = await params
     const { data: project } = await getProject(id)
     if (!project) notFound()
-    const execution = await getExecution(id)
+    const [execution, finances, summary] = await Promise.all([getExecution(id), getProjectFinances(id), getProjectFinancialSummary(id)])
     const [{ data: scope, error: scopeError }, { data: importableProformas, error: importError }] = await Promise.all([
         getProjectScope(id),
         getImportableProformas(id),
@@ -31,7 +35,14 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
             <Card><CardHeader><CardTitle className="flex items-center gap-2 text-base"><CalendarDays className="h-4 w-4" />Planificación</CardTitle></CardHeader><CardContent className="grid grid-cols-2 gap-4 text-sm"><div><p className="text-muted-foreground">Inicio</p><p className="font-medium">{formatDate(project.start_date)}</p></div><div><p className="text-muted-foreground">Fin estimado</p><p className="font-medium">{formatDate(project.expected_end_date)}</p></div></CardContent></Card>
         </div>
         <Card><CardHeader><CardTitle className="text-base">Notas</CardTitle></CardHeader><CardContent className="whitespace-pre-wrap text-sm">{project.notes || 'Sin notas.'}</CardContent></Card>
+        {summary.error || !summary.data ? <p role="alert" className="text-destructive">No se pudo cargar el resumen financiero: {summary.error}</p> : <ProjectSummary summary={summary.data} />}
         {scopeError || importError ? <Card className="border-destructive"><CardContent className="py-6 text-sm text-destructive">No se pudo cargar el alcance: {scopeError ?? importError}</CardContent></Card> : <ProjectScope projectId={id} scope={scope} importableProformas={importableProformas} />}
         {execution.error || scopeError ? <p role="alert" className="text-destructive">No se pudo cargar la ejecución: {execution.error ?? scopeError}</p> : <ProjectExecution projectId={id} items={execution.items} providers={execution.providers} scope={scope.flatMap(entry => entry.project_scope_items)} />}
+        {finances.error || execution.error || scopeError ? <p role="alert" className="text-destructive">No se pudieron cargar las finanzas: {finances.error ?? execution.error ?? scopeError}</p> : <ProjectFinances
+            projectId={id} transactions={finances.transactions} receivables={finances.receivables}
+            executions={execution.items} providers={execution.providers}
+            scope={scope.flatMap(entry => entry.project_scope_items)}
+            proformas={scope.map(entry => ({ id: entry.id, label: 'Proforma #' + (entry.proformas?.proforma_number ?? '—') }))}
+        />}
     </div>
 }
