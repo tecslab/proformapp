@@ -1,6 +1,6 @@
 # ProformApp
 
-ProformApp is a Spanish-language application for managing clients and producing numbered proformas (quotes). It uses Next.js App Router, Supabase Auth/Postgres, React Server Actions, Tailwind/shadcn UI, and browser-side PDF generation with jsPDF.
+ProformApp is a Spanish-language application for managing clients, producing numbered proformas (quotes), and coordinating project delivery. It uses Next.js App Router, Supabase Auth/Postgres, React Server Actions, Tailwind/shadcn UI, and browser-side PDF generation with jsPDF.
 
 ## What is implemented
 
@@ -9,8 +9,9 @@ ProformApp is a Spanish-language application for managing clients and producing 
 - Draft proformas with ordered line items, gain percentage, discount, IVA, delivery/payment details, and calculated totals.
 - Per-user sequential proforma numbers through the `get_next_proforma_number` database function.
 - Draft-only editing, finalization, cloning, search/pagination, and client-side PDF download.
+- Phase 1 of project management: project and provider/master CRUD, ownership-based RLS, archival/deactivation, and dashboard navigation.
 
-The detailed product/design reference is [proforma_app_specs.md](./proforma_app_specs.md). It contains historical implementation notes; use the code and database type definitions as the source of truth where they differ (this implementation uses jsPDF rather than `@react-pdf/renderer`).
+The quote product/design reference is [proforma_app_specs.md](./proforma_app_specs.md). Project-management phases and rules are defined in [implementacionGP.md](./implementacionGP.md); the selected discount model is Strategy B (a global commercial adjustment, with no persisted item-level allocation).
 
 ## Local setup
 
@@ -48,14 +49,14 @@ npm run test:e2e     # Playwright tests (expects e2e/)
 
 | Area | Location | Notes |
 | --- | --- | --- |
-| App routes | `src/app` | `(auth)` contains login; `(dashboard)` contains dashboard, clients, and proformas. |
+| App routes | `src/app` | `(auth)` contains login; `(dashboard)` contains dashboard, clients, proformas, projects, and providers. |
 | Authentication/session refresh | `src/middleware.ts`, `src/lib/supabase/` | Middleware refreshes the session and redirects unauthenticated requests to `/login`. |
-| Mutations and reads | `src/lib/actions/` | Server Actions for auth, clients, dashboard metrics, and proformas. |
+| Mutations and reads | `src/lib/actions/` | Server Actions for auth, clients, dashboard metrics, proformas, projects, and providers. |
 | Forms and UI | `src/components/` | React Hook Form + Zod; reusable shadcn-style primitives are in `components/ui`. |
-| Validation | `src/lib/validations/` | Shared client and proforma schemas. Keep server-action validation in sync with form changes. |
+| Validation | `src/lib/validations/` | Shared client, proforma, project, and provider schemas. Keep server-action validation in sync with form changes. |
 | Pricing/PDF helpers | `src/lib/calculations.ts`, `src/lib/pdf-generator.ts` | PDF is generated in the browser and saved on demand. |
 | Database contract | `src/lib/types/database.ts` | TypeScript representation of the Supabase public schema. |
-| SQL migrations | `supabase/migrations/` | Currently contains the item-position migration only. |
+| SQL migrations | `supabase/migrations/` | Incremental migrations for item ordering and project-management tables. |
 
 ## Database expectations
 
@@ -65,10 +66,12 @@ The app expects these Supabase tables:
 - `proformas` — owned by `user_id`; references a client and holds number, status, financial totals, and quote metadata.
 - `items` — references a proforma; each item has an explicit, non-negative `position` used for display order.
 - `proforma_sequence` — one row per user for allocating sequential quote numbers.
+- `projects` — user-owned operational projects linked to existing clients; archived rather than hard-deleted in the UI.
+- `providers` — user-owned suppliers, masters, contractors, and service providers; deactivated rather than hard-deleted in the UI.
 
 It also calls the Postgres function `get_next_proforma_number(p_user_id uuid)` and relies on foreign keys from proformas to clients and items to proformas. RLS policies must limit each table and function to the authenticated owner. The expected columns and relationships are documented in `src/lib/types/database.ts`.
 
-Important: this repository does **not** contain an initial schema migration. It only contains [`20260801000000_add_item_position.sql`](./supabase/migrations/20260801000000_add_item_position.sql), which assumes the tables already exist. Before onboarding a new Supabase project, create/check in a baseline migration for the tables, RLS policies, indexes, sequence function, and any current columns such as `proformas.descuento`; then apply the position migration. Update `src/lib/types/database.ts` after schema changes.
+Important: this repository does **not** contain an initial schema migration. Its incremental migrations assume the original client/proforma schema already exists. Before onboarding a new Supabase project, create/check in a baseline migration for those original tables, RLS policies, indexes, sequence function, and current columns such as `proformas.descuento`; then apply the incremental migrations in order. Update `src/lib/types/database.ts` after schema changes.
 
 ## Business rules to preserve
 
@@ -79,6 +82,8 @@ Important: this repository does **not** contain an initial schema migration. It 
 - Item total is `(unit_cost + unit_cost × percentage_gain / 100) × quantity`.
 - A percentage discount is applied to the subtotal before IVA; total is discounted subtotal plus IVA.
 - Client deletion is soft deletion. Lists exclude records with `deleted_at` set.
+- Projects can only reference active clients owned by the authenticated user. Project archival and provider deactivation preserve historical records.
+- Project-management discounts use Strategy B: keep the original line amounts and snapshot the global discount when proforma import is implemented in Phase 2.
 
 ## Continuing development
 
@@ -90,9 +95,9 @@ PDF branding is intentionally application-specific: [`src/lib/pdf-generator.ts`]
 
 ## Current verification baseline
 
-The repository currently has Jest tests for validations, calculations, PDF helpers, and selected UI/forms. On 2026-09-19, `npm test -- --runInBand` produced 37 passing tests and 1 known failing test: `ProformaForm › calculates totals correctly when item values change`. The assertion uses `/Total:/`, which now matches `Costo Total:`, `Ganancia Total:`, and `Total:`. Update that test to target the final-total label more specifically before treating the suite as green.
+The repository currently has Jest tests for validations, calculations, PDF helpers, and selected UI/forms. On 2026-09-19, `npm test -- --runInBand` produced 43 passing tests across 10 suites.
 
-There is a Playwright configuration, but no `e2e/` test directory is currently tracked. Add end-to-end coverage for login, client CRUD, draft/finalized permissions, PDF download, and cross-user RLS isolation as the next high-value test work.
+Playwright coverage exists for authentication, clients, and proformas. Project/provider CRUD and cross-user RLS isolation remain the next high-value end-to-end scenarios.
 
 ## Deployment checklist
 

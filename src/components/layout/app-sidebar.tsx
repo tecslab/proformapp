@@ -1,6 +1,6 @@
 'use client'
 
-import { Calendar, Home, Inbox, Search, Settings, User2, Users, FileText } from 'lucide-react'
+import { FileText, FolderKanban, HardHat, Home, User2, Users } from 'lucide-react'
 import {
     Sidebar,
     SidebarContent,
@@ -31,6 +31,16 @@ const items = [
         title: 'Proformas',
         url: '/dashboard/proformas',
         icon: FileText,
+    },
+    {
+        title: 'Proyectos',
+        url: '/dashboard/projects',
+        icon: FolderKanban,
+    },
+    {
+        title: 'Proveedores y maestros',
+        url: '/dashboard/providers',
+        icon: HardHat,
     }
 ]
 

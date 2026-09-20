@@ -184,6 +184,104 @@ export type Database = {
                     },
                 ]
             }
+            projects: {
+                Row: {
+                    archived_at: string | null
+                    client_id: string
+                    created_at: string
+                    expected_end_date: string | null
+                    id: string
+                    name: string
+                    notes: string | null
+                    start_date: string | null
+                    status: string
+                    updated_at: string
+                    user_id: string
+                }
+                Insert: {
+                    archived_at?: string | null
+                    client_id: string
+                    created_at?: string
+                    expected_end_date?: string | null
+                    id?: string
+                    name: string
+                    notes?: string | null
+                    start_date?: string | null
+                    status?: string
+                    updated_at?: string
+                    user_id: string
+                }
+                Update: {
+                    archived_at?: string | null
+                    client_id?: string
+                    created_at?: string
+                    expected_end_date?: string | null
+                    id?: string
+                    name?: string
+                    notes?: string | null
+                    start_date?: string | null
+                    status?: string
+                    updated_at?: string
+                    user_id?: string
+                }
+                Relationships: [
+                    {
+                        foreignKeyName: "projects_client_id_fkey"
+                        columns: ["client_id"]
+                        isOneToOne: false
+                        referencedRelation: "clients"
+                        referencedColumns: ["id"]
+                    },
+                ]
+            }
+            providers: {
+                Row: {
+                    active: boolean
+                    address: string | null
+                    cedula_ruc: string | null
+                    created_at: string
+                    email: string | null
+                    id: string
+                    name: string
+                    notes: string | null
+                    phone: string | null
+                    specialty: string | null
+                    type: string
+                    updated_at: string
+                    user_id: string
+                }
+                Insert: {
+                    active?: boolean
+                    address?: string | null
+                    cedula_ruc?: string | null
+                    created_at?: string
+                    email?: string | null
+                    id?: string
+                    name: string
+                    notes?: string | null
+                    phone?: string | null
+                    specialty?: string | null
+                    type: string
+                    updated_at?: string
+                    user_id: string
+                }
+                Update: {
+                    active?: boolean
+                    address?: string | null
+                    cedula_ruc?: string | null
+                    created_at?: string
+                    email?: string | null
+                    id?: string
+                    name?: string
+                    notes?: string | null
+                    phone?: string | null
+                    specialty?: string | null
+                    type?: string
+                    updated_at?: string
+                    user_id?: string
+                }
+                Relationships: []
+            }
         }
         Views: {
             [_ in never]: never
